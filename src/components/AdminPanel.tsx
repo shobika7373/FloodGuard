@@ -6,10 +6,10 @@ import {
   ShieldCheck,
   Users,
   Activity,
-  CheckCircle,
   AlertTriangle,
   RefreshCw,
-} from "lucide-react";
+} 
+from "lucide-react";
 
 const systemModules = [
   {

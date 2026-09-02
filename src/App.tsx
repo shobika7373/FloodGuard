@@ -58,7 +58,8 @@ type Page =
   | "AI Insights"
   | "Authority Dashboard"
   | "Admin Panel"
-  | "About FloodGuard";
+  | "About FloodGuard"
+  | "AI Flood Prediction";
 
 const menuGroups = [
   {
@@ -103,44 +104,7 @@ const menuGroups = [
   },
 ];
 
-function SimplePage({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-        <p className="mt-1 text-sm text-slate-500">{description}</p>
-      </div>
 
-      {children || (
-        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
-            <Activity className="h-7 w-7 text-slate-500" />
-          </div>
-
-          <h2 className="mt-4 font-semibold text-slate-800">
-            Module Ready
-          </h2>
-
-          <p className="mt-2 text-sm text-slate-500">
-            This module is ready for integration with the FloodGuard system.
-          </p>
-
-          <span className="mt-4 inline-block rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-            DEMO / SIMULATED DATA
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function Overview() {
   const zones = [
