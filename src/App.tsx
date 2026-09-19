@@ -115,8 +115,15 @@ function Overview() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-blue-50 p-6 rounded-xl min-h-screen">
       {/* Header */}
+      <div className="text-center space-y-2 py-4">
+        <h1 className="text-3xl font-bold tracking-widest">FLOODGUARD COMMAND CENTER</h1>
+        <p className="text-gray-600">Chennai Urban Flood Nowcasting & Decision Support</p>
+        <span className="inline-block bg-yellow-300 text-black font-bold px-4 py-1 rounded-full text-sm animate-pulse">
+          DEMO / SIMULATED DATA
+        </span>
+      </div>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">
@@ -476,7 +483,7 @@ export default function App() {
   return <AIFloodPrediction />;
 
       case "Why This Area Will Flood?":
-  return <ExplainableAI />;
+  return <ExplainableAI onNavigate={(p) => setPage(p as Page)} />;
 
       case "Rainfall":
   return <Rainfall />;
