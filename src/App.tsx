@@ -106,7 +106,7 @@ const menuGroups = [
 
 
 
-function Overview() {
+function Overview({ onNavigate }: { onNavigate: (page: Page) => void }) {
   const zones = [
     { name: "T. Nagar", risk: 86, level: "Critical" },
     { name: "Velachery", risk: 72, level: "High" },
@@ -148,8 +148,8 @@ function Overview() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-slate-500">Current Flood Risk</p>
             <AlertTriangle className="h-5 w-5 text-orange-500" />
@@ -201,6 +201,35 @@ function Overview() {
       </div>
 
       {/* Main grid */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
+  <div className="flex items-center justify-between">
+    <p className="text-sm text-slate-500">Prediction Horizon</p>
+    <Activity className="h-5 w-5 text-purple-600" />
+  </div>
+
+  <p className="mt-2 text-3xl font-bold text-slate-900">
+    3 Hours
+  </p>
+
+  <p className="mt-1 text-xs text-slate-500">
+    Simulated forecast window
+  </p>
+</div>
+
+<div className="rounded-xl border border-slate-200 bg-white p-4">
+  <div className="flex items-center justify-between">
+    <p className="text-sm text-slate-500">Focus Area</p>
+    <Map className="h-5 w-5 text-red-500" />
+  </div>
+
+  <p className="mt-2 text-2xl font-bold text-slate-900">
+    T. Nagar
+  </p>
+
+  <p className="mt-1 text-xs text-slate-500">
+    Demo high-risk zone
+  </p>
+</div>
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {/* Map */}
         <div className="xl:col-span-2 rounded-xl border border-slate-200 bg-white">
@@ -213,6 +242,12 @@ function Overview() {
               <p className="text-xs text-slate-500">
                 DEMO / SIMULATED DATA
               </p>
+              <button
+  onClick={() => onNavigate("Live Flood Map")}
+  className="mt-3 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-700"
+>
+  View Existing Live Flood Map
+</button>
             </div>
 
             <Map className="h-5 w-5 text-slate-500" />
@@ -310,16 +345,16 @@ function Overview() {
 
                 <div className="mt-2 flex items-center justify-between">
                   <span
-                    className={`text-sm font-bold ${
-                      risk === "Critical"
-                        ? "text-red-600"
-                        : risk === "High"
-                          ? "text-orange-600"
-                          : "text-yellow-600"
-                    }`}
-                  >
-                    {risk}
-                  </span>
+  className={`text-sm font-bold ${
+    risk === "Critical"
+      ? "text-red-600"
+      : risk === "High"
+        ? "text-orange-600"
+        : "text-yellow-600"
+  }`}
+>
+  {risk}
+</span>
 
                   <span className="text-xs text-slate-400">
                     DEMO
@@ -332,6 +367,60 @@ function Overview() {
       </div>
 
       {/* High risk zones + alerts */}
+      {/* Why this area is at risk */}
+<div className="rounded-xl border border-slate-200 bg-white p-5">
+  <div className="flex items-center justify-between">
+    <div>
+      <h2 className="font-semibold text-slate-900">
+        Why This Area Is At Risk
+      </h2>
+
+      <p className="mt-1 text-xs text-slate-500">
+        Key factors contributing to the simulated risk
+      </p>
+    </div>
+
+    <AlertTriangle className="h-5 w-5 text-orange-500" />
+  </div>
+
+  <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="rounded-lg bg-blue-50 p-4">
+      <p className="text-sm font-semibold text-blue-800">
+        Heavy Rainfall
+      </p>
+      <p className="mt-1 text-xs text-blue-700">
+        Rainfall intensity is increasing.
+      </p>
+    </div>
+
+    <div className="rounded-lg bg-cyan-50 p-4">
+      <p className="text-sm font-semibold text-cyan-800">
+        Rising Water Level
+      </p>
+      <p className="mt-1 text-xs text-cyan-700">
+        Simulated water level is rising.
+      </p>
+    </div>
+
+    <div className="rounded-lg bg-purple-50 p-4">
+      <p className="text-sm font-semibold text-purple-800">
+        Drainage Load
+      </p>
+      <p className="mt-1 text-xs text-purple-700">
+        Drainage utilization is elevated.
+      </p>
+    </div>
+
+    <div className="rounded-lg bg-orange-50 p-4">
+      <p className="text-sm font-semibold text-orange-800">
+        Area Vulnerability
+      </p>
+      <p className="mt-1 text-xs text-orange-700">
+        Low-lying urban areas may face higher exposure.
+      </p>
+    </div>
+  </div>
+</div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-white">
           <div className="flex items-center justify-between border-b border-slate-200 p-5">
@@ -415,6 +504,102 @@ function Overview() {
       </div>
 
       {/* Pipeline */}
+      {/* Recommended response */}
+<div className="rounded-xl border border-slate-200 bg-white p-5">
+  <div className="flex items-center justify-between">
+    <div>
+      <h2 className="font-semibold text-slate-900">
+        Recommended Response
+      </h2>
+
+      <p className="mt-1 text-xs text-slate-500">
+        Prototype recommendations based on simulated conditions
+      </p>
+    </div>
+
+    <Siren className="h-5 w-5 text-red-500" />
+  </div>
+
+  <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+    <div className="rounded-lg border border-slate-200 p-4">
+      <p className="font-semibold text-slate-800">
+        Monitor affected zone
+      </p>
+      <p className="mt-1 text-xs text-slate-500">
+        Review the current risk condition.
+      </p>
+    </div>
+
+    <div className="rounded-lg border border-slate-200 p-4">
+      <p className="font-semibold text-slate-800">
+        Inspect drainage capacity
+      </p>
+      <p className="mt-1 text-xs text-slate-500">
+        Review drainage utilization and bottlenecks.
+      </p>
+    </div>
+
+    <div className="rounded-lg border border-slate-200 p-4">
+      <p className="font-semibold text-slate-800">
+        Prepare response teams
+      </p>
+      <p className="mt-1 text-xs text-slate-500">
+        Prototype planning recommendation.
+      </p>
+    </div>
+
+    <div className="rounded-lg border border-slate-200 p-4">
+      <p className="font-semibold text-slate-800">
+        Review evacuation route
+      </p>
+      <p className="mt-1 text-xs text-slate-500">
+        Check the existing evacuation route page.
+      </p>
+    </div>
+  </div>
+
+  <p className="mt-4 text-xs font-medium text-amber-700">
+    Prototype recommendations only — not emergency instructions.
+  </p>
+</div>
+{/* Quick investigation */}
+<div className="rounded-xl border border-slate-200 bg-white p-5">
+  <div>
+    <h2 className="font-semibold text-slate-900">
+      Quick Investigation
+    </h2>
+
+    <p className="mt-1 text-xs text-slate-500">
+      Explore existing FloodGuard intelligence modules.
+    </p>
+  </div>
+
+  <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    {[
+      ["Live Flood Map", Map],
+      ["AI Flood Prediction", Brain],
+      ["Why This Area Will Flood?", BarChart3],
+      ["Water Levels", Waves],
+      ["Drainage Intelligence", Activity],
+      ["AI Action Engine", Siren],
+    ].map(([name, Icon]) => (
+      <button
+        key={name as string}
+        onClick={() => onNavigate(name as Page)}
+        className="flex items-center justify-between rounded-lg border border-slate-200 p-4 text-left transition hover:border-slate-400 hover:bg-slate-50"
+      >
+        <div className="flex items-center gap-3">
+          <Icon className="h-5 w-5 text-slate-600" />
+          <span className="text-sm font-semibold text-slate-800">
+            {name as string}
+          </span>
+        </div>
+
+        <ChevronRight className="h-4 w-4 text-slate-400" />
+      </button>
+    ))}
+  </div>
+</div>
       <div className="rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="font-semibold text-slate-900">
           FloodGuard Intelligence Pipeline
@@ -453,7 +638,7 @@ export default function App() {
   const renderPage = () => {
     switch (page) {
       case "Overview":
-        return <Overview />;
+        return <Overview onNavigate={(p:Page)=> setPage(p)}/>;
 
       case "Flood Digital Twin":
         return <FloodDigitalTwin />;
@@ -511,7 +696,7 @@ export default function App() {
   return <SustainableSolutions />;
 
       default:
-        return <Overview />;
+        return <Overview onNavigate={(p)=>setPage(p)}/>;
     }
   };
 
