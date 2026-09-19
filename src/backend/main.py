@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .models.flood import FloodRiskInput, FloodRiskResponse
+from .services.risk_engine import calculate_flood_risk
+from .data.demo_scenarios import get_demo_scenario
+
+
 # ---------------------------------------------------------
 # FLOODGUARD BACKEND
 # Prototype / Demo Backend
@@ -11,6 +16,7 @@ app = FastAPI(
     description="Chennai Urban Flood Nowcasting - Prototype Backend",
     version="1.0.0",
 )
+
 
 # ---------------------------------------------------------
 # CORS
@@ -109,6 +115,7 @@ def get_water_levels():
 
 # ---------------------------------------------------------
 # FLOOD RISK
+# Existing frontend endpoint
 # ---------------------------------------------------------
 
 @app.get("/api/flood-risk")
@@ -138,6 +145,25 @@ def get_flood_risk():
             },
         ],
     }
+
+
+# ---------------------------------------------------------
+# FLOOD RISK ENGINE
+# New reusable Risk Engine endpoint
+# ---------------------------------------------------------
+
+@app.post("/api/flood-risk/calculate", response_model=FloodRiskResponse)
+def calculate_risk(data: FloodRiskInput):
+    return calculate_flood_risk(data)
+
+
+# ---------------------------------------------------------
+# DEMO SCENARIO
+# ---------------------------------------------------------
+
+@app.get("/api/demo-scenario")
+def demo_scenario():
+    return get_demo_scenario()
 
 
 # ---------------------------------------------------------
