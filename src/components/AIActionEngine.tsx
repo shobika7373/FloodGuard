@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Brain,
   Bell,
@@ -8,42 +9,53 @@ import {
   Clock,
   ArrowRight,
 } from "lucide-react";
+import { getActionRecommendations } from "../services/api";
 
-const actions = [
+type ActionItem = {
+  priority: string;
+  location: string;
+  action: string;
+  risk?: string;
+  time?: string;
+  reason?: string;
+  icon: typeof ShieldAlert;
+};
+
+const fallbackActions: ActionItem[] = [
   {
     priority: "CRITICAL",
     location: "Saidapet",
     risk: "91/100",
-    time: "45–60 min",
-    reason: "Rapid water-level rise + drainage stress",
-    action: "Prioritize emergency response and official evacuation procedures",
+    time: "Demo",
+    reason: "Backend simulated critical flood condition",
+    action: "Deploy drainage response team",
     icon: ShieldAlert,
   },
   {
     priority: "HIGH",
     location: "Velachery",
-    risk: "78/100",
-    time: "1–2 hr",
-    reason: "Heavy rainfall + high drainage utilization",
-    action: "Issue warning and inspect vulnerable drainage points",
+    risk: "Demo",
+    time: "Demo",
+    reason: "Backend simulated high-priority condition",
+    action: "Inspect vulnerable drainage points",
     icon: Bell,
   },
   {
     priority: "HIGH",
     location: "T. Nagar",
-    risk: "72/100",
-    time: "2–3 hr",
-    reason: "Increasing rainfall + low-lying roads",
-    action: "Monitor flood-prone roads and prepare alternate routes",
+    risk: "Demo",
+    time: "Demo",
+    reason: "Backend simulated high-priority condition",
+    action: "Prepare public warning",
     icon: Route,
   },
   {
-    priority: "MODERATE",
+    priority: "MONITOR",
     location: "Adyar",
-    risk: "48/100",
-    time: "3+ hr",
-    reason: "Moderate rainfall with stable water levels",
-    action: "Continue monitoring rainfall and water-level trends",
+    risk: "Demo",
+    time: "Demo",
+    reason: "Backend simulated monitoring condition",
+    action: "Continue water-level monitoring",
     icon: Clock,
   },
 ];
@@ -57,9 +69,90 @@ const workflow = [
   "Shelter Activation",
 ];
 
+function getIcon(priority: string) {
+  if (priority === "Immediate") return ShieldAlert;
+  if (priority === "High") return Bell;
+  return Clock;
+}
+
 export default function AIActionEngine() {
+  const [actions, setActions] =
+    useState<ActionItem[]>(fallbackActions);
+
+  const [loading, setLoading] = useState(true);
+  const [backendError, setBackendError] = useState(false);
+
+  useEffect(() => {
+    async function loadActions() {
+      try {
+        setLoading(true);
+        setBackendError(false);
+
+        const response = await getActionRecommendations();
+
+        if (Array.isArray(response?.recommendations)) {
+          const mappedActions: ActionItem[] =
+            response.recommendations.map((item: any) => ({
+              priority: item.priority,
+              location: item.area,
+              action: item.action,
+              risk: "Backend",
+              time: "Demo",
+              reason:
+                "Recommendation generated from simulated backend flood-risk conditions",
+              icon: getIcon(item.priority),
+            }));
+
+          setActions(mappedActions);
+        }
+      } catch (error) {
+        console.error(
+          "AI Action Engine backend error:",
+          error
+        );
+
+        setBackendError(true);
+        setActions(fallbackActions);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadActions();
+  }, []);
+
+  const criticalCount = actions.filter(
+    (item) => item.priority === "Immediate"
+  ).length;
+
+  const highCount = actions.filter(
+    (item) => item.priority === "High"
+  ).length;
+
+  const highestPriority =
+    actions.find((item) => item.priority === "Immediate") ??
+    actions.find((item) => item.priority === "High") ??
+    actions[0];
+
   return (
     <div className="space-y-6">
+
+      {/* Backend Status */}
+      {loading && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <p className="text-sm font-semibold text-blue-900">
+            Loading action recommendations...
+          </p>
+        </div>
+      )}
+
+      {backendError && !loading && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-900">
+            Backend unavailable — showing DEMO / SIMULATED DATA.
+          </p>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -91,7 +184,7 @@ export default function AIActionEngine() {
           </p>
 
           <p className="mt-2 text-3xl font-bold text-slate-900">
-            4
+            {actions.length}
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
@@ -105,11 +198,11 @@ export default function AIActionEngine() {
           </p>
 
           <p className="mt-2 text-3xl font-bold text-red-700">
-            1
+            {criticalCount}
           </p>
 
           <p className="mt-2 text-xs text-red-600">
-            Requires immediate authority attention
+            Backend priority: Immediate
           </p>
         </div>
 
@@ -119,7 +212,7 @@ export default function AIActionEngine() {
           </p>
 
           <p className="mt-2 text-3xl font-bold text-orange-700">
-            2
+            {highCount}
           </p>
 
           <p className="mt-2 text-xs text-orange-600">
@@ -153,7 +246,7 @@ export default function AIActionEngine() {
             </div>
 
             <span className="w-fit rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-700">
-              CRITICAL FLOOD RISK
+              {highestPriority?.priority ?? "DEMO"}
             </span>
 
           </div>
@@ -170,17 +263,17 @@ export default function AIActionEngine() {
               </p>
 
               <p className="mt-1 text-xl font-bold text-slate-900">
-                Saidapet
+                {highestPriority?.location ?? "Loading"}
               </p>
             </div>
 
             <div>
               <p className="text-xs uppercase text-slate-500">
-                Risk Score
+                Risk
               </p>
 
               <p className="mt-1 text-xl font-bold text-red-600">
-                91 / 100
+                {highestPriority?.risk ?? "Backend"}
               </p>
             </div>
 
@@ -190,7 +283,7 @@ export default function AIActionEngine() {
               </p>
 
               <p className="mt-1 text-xl font-bold text-orange-600">
-                45–60 min
+                {highestPriority?.time ?? "Demo"}
               </p>
             </div>
 
@@ -203,9 +296,8 @@ export default function AIActionEngine() {
             </p>
 
             <p className="mt-2 text-sm text-slate-600">
-              Simulated heavy rainfall, drainage stress and rapidly
-              increasing water levels are combining to produce a
-              high flood-risk condition.
+              {highestPriority?.reason ??
+                "Backend simulated flood-risk conditions are used to generate this recommendation."}
             </p>
 
           </div>
@@ -269,7 +361,7 @@ export default function AIActionEngine() {
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Actions generated from simulated flood-risk conditions.
+            Actions generated from simulated backend flood-risk conditions.
           </p>
 
         </div>
@@ -301,9 +393,9 @@ export default function AIActionEngine() {
 
                       <span
                         className={`text-xs font-bold ${
-                          item.priority === "CRITICAL"
+                          item.priority === "Immediate"
                             ? "text-red-600"
-                            : item.priority === "HIGH"
+                            : item.priority === "High"
                             ? "text-orange-600"
                             : "text-yellow-600"
                         }`}
@@ -404,20 +496,18 @@ export default function AIActionEngine() {
               </p>
 
             </div>
-
           ))}
 
         </div>
-
       </div>
 
       {/* Prototype Notice */}
       <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
         <strong>Prototype Notice:</strong> Recommendations shown here
-        are generated from simulated flood conditions using transparent
-        rule-based logic. They are not real emergency instructions.
-        Actual emergency actions should be issued only by authorized
-        authorities.
+        are generated from simulated backend flood conditions using
+        transparent rule-based logic. They are not real emergency
+        instructions. Actual emergency actions should be issued only
+        by authorized authorities.
       </div>
 
     </div>

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Droplets,
   Gauge,
@@ -7,58 +8,114 @@ import {
   Wrench,
   TrendingUp,
 } from "lucide-react";
+import { getDrainage } from "../services/api";
 
-const drainageStations = [
+const demoStations = [
   {
     id: "Drain 01",
     location: "T. Nagar",
-    capacity: "1200 m³/hr",
-    flow: "620 m³/hr",
-    utilization: 52,
-    status: "Normal",
-    blockage: "8%",
+    utilization: 84,
+    condition: "High Load",
   },
   {
     id: "Drain 04",
     location: "Velachery",
-    capacity: "950 m³/hr",
-    flow: "760 m³/hr",
-    utilization: 80,
-    status: "Warning",
-    blockage: "34%",
+    utilization: 76,
+    condition: "High Load",
   },
   {
     id: "Drain 08",
     location: "Adyar",
-    capacity: "1100 m³/hr",
-    flow: "690 m³/hr",
-    utilization: 63,
-    status: "Normal",
-    blockage: "16%",
+    utilization: 61,
+    condition: "Normal",
   },
   {
     id: "Drain 12",
     location: "Saidapet",
-    capacity: "800 m³/hr",
-    flow: "210 m³/hr",
-    utilization: 89,
-    status: "Overflow Risk",
-    blockage: "89%",
+    utilization: 91,
+    condition: "Critical",
   },
 ];
 
 export default function DrainageIntelligence() {
+  const [drainageStations, setDrainageStations] =
+    useState(demoStations);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    getDrainage()
+      .then((response) => {
+        const backendData = response.data || [];
+
+        const mappedStations = backendData.map(
+          (
+            item: {
+              area: string;
+              utilization: number;
+              condition: string;
+            },
+            index: number
+          ) => ({
+            id: `Drain ${String(index + 1).padStart(2, "0")}`,
+            location: item.area,
+            utilization: item.utilization,
+            condition: item.condition,
+          })
+        );
+
+        setDrainageStations(mappedStations);
+        setError("");
+      })
+      .catch((error) => {
+        console.error("Drainage API error:", error);
+        setError(
+          "Backend unavailable — showing DEMO / SIMULATED DATA."
+        );
+        setDrainageStations(demoStations);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[300px] items-center justify-center">
+        <div className="text-sm font-medium text-slate-600">
+          Loading drainage data...
+        </div>
+      </div>
+    );
+  }
+
   const highRisk = drainageStations.filter(
-    (station) => station.status === "Overflow Risk"
+    (station) => station.condition === "Critical"
   ).length;
 
   const warning = drainageStations.filter(
-    (station) => station.status === "Warning"
+    (station) => station.condition === "High Load"
   ).length;
 
   const normal = drainageStations.filter(
-    (station) => station.status === "Normal"
+    (station) => station.condition === "Normal"
   ).length;
+
+  const highestUtilization =
+    drainageStations.length > 0
+      ? Math.max(
+          ...drainageStations.map(
+            (station) => station.utilization
+          )
+        )
+      : 0;
+
+  const highestStation =
+    drainageStations.find(
+      (station) =>
+        station.utilization === highestUtilization
+    )?.location || "N/A";
 
   return (
     <div className="space-y-6">
@@ -75,7 +132,7 @@ export default function DrainageIntelligence() {
           </div>
 
           <p className="mt-1 text-sm text-slate-500">
-            Monitor drainage capacity, flow conditions, utilization and
+            Monitor drainage utilization, operating conditions and
             possible blockage risks.
           </p>
         </div>
@@ -84,6 +141,13 @@ export default function DrainageIntelligence() {
           DEMO / SIMULATED DATA
         </div>
       </div>
+
+      {/* Error / Fallback */}
+      {error && (
+        <div className="rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-medium text-orange-700">
+          {error}
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -106,7 +170,7 @@ export default function DrainageIntelligence() {
           </div>
 
           <p className="mt-3 text-xs text-slate-500">
-            Simulated monitoring points
+            Backend-connected demonstration points
           </p>
         </div>
 
@@ -128,7 +192,7 @@ export default function DrainageIntelligence() {
           </div>
 
           <p className="mt-3 text-xs text-slate-500">
-            Operating within normal range
+            Operating within normal condition
           </p>
         </div>
 
@@ -136,7 +200,7 @@ export default function DrainageIntelligence() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-500">
-                Warning
+                High Load
               </p>
 
               <p className="mt-2 text-2xl font-bold text-orange-600">
@@ -158,7 +222,7 @@ export default function DrainageIntelligence() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-500">
-                Overflow Risk
+                Critical
               </p>
 
               <p className="mt-2 text-2xl font-bold text-red-600">
@@ -172,7 +236,7 @@ export default function DrainageIntelligence() {
           </div>
 
           <p className="mt-3 text-xs text-red-600">
-            Requires inspection
+            Highest utilization requires monitoring
           </p>
         </div>
 
@@ -193,18 +257,17 @@ export default function DrainageIntelligence() {
 
               <div>
                 <h2 className="font-semibold text-red-900">
-                  Possible Drainage Bottleneck Detected
+                  High Drainage Utilization Detected
                 </h2>
 
                 <p className="mt-1 text-sm text-red-800">
-                  Drain 12 shows high simulated utilization with low
-                  observed flow, indicating a possible blockage or
-                  drainage bottleneck.
+                  {highestStation} currently has the highest simulated
+                  drainage utilization among the monitored locations.
                 </p>
               </div>
 
               <span className="w-fit rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-700">
-                89% BLOCKAGE PROBABILITY
+                {highestUtilization}% UTILIZATION
               </span>
 
             </div>
@@ -213,28 +276,31 @@ export default function DrainageIntelligence() {
 
               <div className="rounded-lg bg-white/70 p-3">
                 <p className="text-xs text-slate-500">
-                  Rainfall
+                  Highest Utilization
                 </p>
+
                 <p className="mt-1 font-semibold text-slate-900">
-                  51 mm/hr
+                  {highestUtilization}%
                 </p>
               </div>
 
               <div className="rounded-lg bg-white/70 p-3">
                 <p className="text-xs text-slate-500">
-                  Water Level
+                  Location
                 </p>
+
                 <p className="mt-1 font-semibold text-slate-900">
-                  Rising
+                  {highestStation}
                 </p>
               </div>
 
               <div className="rounded-lg bg-white/70 p-3">
                 <p className="text-xs text-slate-500">
-                  Drain Flow
+                  Data Type
                 </p>
+
                 <p className="mt-1 font-semibold text-slate-900">
-                  210 m³/hr
+                  Simulated
                 </p>
               </div>
 
@@ -253,17 +319,19 @@ export default function DrainageIntelligence() {
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Simulated drainage capacity and operating conditions.
+            Backend-connected drainage utilization and operating
+            conditions.
           </p>
         </div>
 
         <div className="overflow-x-auto">
 
-          <table className="w-full min-w-[850px]">
+          <table className="w-full min-w-[750px]">
 
             <thead className="bg-slate-50">
 
               <tr>
+
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
                   Drain
                 </th>
@@ -273,24 +341,17 @@ export default function DrainageIntelligence() {
                 </th>
 
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                  Capacity
-                </th>
-
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                  Current Flow
-                </th>
-
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
                   Utilization
                 </th>
 
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
-                  Blockage
+                  Condition
                 </th>
 
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
                   Status
                 </th>
+
               </tr>
 
             </thead>
@@ -305,28 +366,29 @@ export default function DrainageIntelligence() {
                 >
 
                   <td className="px-5 py-4">
+
                     <div className="flex items-center gap-2">
+
                       <Droplets className="h-4 w-4 text-blue-600" />
 
                       <span className="font-semibold text-slate-900">
                         {station.id}
                       </span>
+
                     </div>
+
                   </td>
 
                   <td className="px-5 py-4">
+
                     <div className="flex items-center gap-2 text-sm text-slate-700">
+
                       <MapPin className="h-4 w-4 text-slate-400" />
+
                       {station.location}
+
                     </div>
-                  </td>
 
-                  <td className="px-5 py-4 text-sm text-slate-700">
-                    {station.capacity}
-                  </td>
-
-                  <td className="px-5 py-4 text-sm font-medium text-slate-900">
-                    {station.flow}
                   </td>
 
                   <td className="px-5 py-4">
@@ -334,6 +396,7 @@ export default function DrainageIntelligence() {
                     <div className="flex items-center gap-3">
 
                       <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-200">
+
                         <div
                           className={`h-full rounded-full ${
                             station.utilization >= 85
@@ -346,6 +409,7 @@ export default function DrainageIntelligence() {
                             width: `${station.utilization}%`,
                           }}
                         />
+
                       </div>
 
                       <span className="text-sm font-semibold text-slate-700">
@@ -356,27 +420,30 @@ export default function DrainageIntelligence() {
 
                   </td>
 
-                  <td className="px-5 py-4 text-sm font-semibold text-slate-700">
-                    {station.blockage}
+                  <td className="px-5 py-4 text-sm text-slate-700">
+                    {station.condition}
                   </td>
 
                   <td className="px-5 py-4">
 
-                    {station.status === "Normal" && (
-                      <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                    {station.condition === "Normal" && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                        <CheckCircle className="h-3 w-3" />
                         Normal
                       </span>
                     )}
 
-                    {station.status === "Warning" && (
-                      <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
-                        Warning
+                    {station.condition === "High Load" && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
+                        <AlertTriangle className="h-3 w-3" />
+                        High Load
                       </span>
                     )}
 
-                    {station.status === "Overflow Risk" && (
-                      <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
-                        Overflow Risk
+                    {station.condition === "Critical" && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                        <AlertTriangle className="h-3 w-3" />
+                        Critical
                       </span>
                     )}
 
@@ -393,31 +460,33 @@ export default function DrainageIntelligence() {
         </div>
       </div>
 
-      {/* Blockage Detection Logic */}
+      {/* Drainage Risk Logic */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
 
           <div className="flex items-center gap-2">
+
             <TrendingUp className="h-5 w-5 text-blue-600" />
 
             <h2 className="text-lg font-semibold text-slate-900">
               Drainage Risk Logic
             </h2>
+
           </div>
 
           <p className="mt-2 text-sm text-slate-500">
             FloodGuard can combine rainfall, water-level changes and
-            drainage flow to identify potential bottlenecks.
+            drainage utilization to identify potential bottlenecks.
           </p>
 
           <div className="mt-5 space-y-3">
 
             {[
-              "Heavy rainfall detected",
-              "Water level rising rapidly",
-              "Drainage flow lower than expected",
-              "Possible blockage or capacity constraint",
+              "Monitor drainage utilization",
+              "Identify high-load conditions",
+              "Compare drainage conditions across locations",
+              "Use backend data for further flood-risk analysis",
             ].map((item, index) => (
 
               <div
@@ -445,23 +514,25 @@ export default function DrainageIntelligence() {
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
 
           <div className="flex items-center gap-2">
+
             <Wrench className="h-5 w-5 text-orange-600" />
 
             <h2 className="text-lg font-semibold text-slate-900">
               Recommended Maintenance
             </h2>
+
           </div>
 
           <div className="mt-5 rounded-lg border border-orange-200 bg-orange-50 p-4">
 
             <p className="text-sm font-semibold text-orange-900">
-              Inspect Drain 12
+              Monitor {highestStation}
             </p>
 
             <p className="mt-2 text-sm text-orange-800">
-              Simulated conditions indicate a possible drainage
-              bottleneck. Field inspection is recommended before
-              treating this as a confirmed blockage.
+              This location currently has the highest simulated
+              drainage utilization. Field inspection may be considered
+              if authorized operational data confirms the condition.
             </p>
 
             <button className="mt-4 inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700">
@@ -475,12 +546,12 @@ export default function DrainageIntelligence() {
 
       </div>
 
-      {/* Future Integration */}
+      {/* Prototype Notice */}
       <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
-        <strong>Prototype Notice:</strong> Drainage values and blockage
-        probabilities are simulated demonstration data. A production
-        system can connect authorized drainage sensors, GIS drainage
-        networks and field inspection data through backend APIs.
+        <strong>Prototype Notice:</strong> Drainage utilization and
+        conditions shown here are simulated demonstration data from
+        the prototype backend. They are not live drainage sensor
+        readings or confirmed blockage measurements.
       </div>
 
     </div>

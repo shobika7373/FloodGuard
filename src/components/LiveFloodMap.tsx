@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Layers,
   MapPin,
@@ -18,6 +18,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { getFloodRisk } from "../services/api";
 
 type RiskLevel = "Low" | "Moderate" | "High" | "Critical";
 
@@ -27,6 +28,18 @@ interface FloodZone {
   risk: RiskLevel;
   depth: string;
   reason: string;
+  source: "Backend" | "Demo";
+}
+
+interface BackendRisk {
+  area: string;
+  risk: number;
+  category: string;
+}
+
+interface BackendRiskResponse {
+  status: string;
+  data: BackendRisk[];
 }
 
 const floodZones: FloodZone[] = [
@@ -36,6 +49,7 @@ const floodZones: FloodZone[] = [
     risk: "Critical",
     depth: "65 cm",
     reason: "High rainfall + drainage pressure + low elevation",
+    source: "Demo",
   },
   {
     name: "Velachery",
@@ -43,6 +57,7 @@ const floodZones: FloodZone[] = [
     risk: "High",
     depth: "48 cm",
     reason: "Surface runoff and drainage capacity exceeded",
+    source: "Demo",
   },
   {
     name: "Saidapet",
@@ -50,6 +65,7 @@ const floodZones: FloodZone[] = [
     risk: "High",
     depth: "42 cm",
     reason: "Low-lying roads and accumulated stormwater",
+    source: "Demo",
   },
   {
     name: "Adyar",
@@ -57,6 +73,7 @@ const floodZones: FloodZone[] = [
     risk: "Moderate",
     depth: "28 cm",
     reason: "Rising water level near drainage channels",
+    source: "Demo",
   },
   {
     name: "Anna Nagar",
@@ -64,6 +81,7 @@ const floodZones: FloodZone[] = [
     risk: "Moderate",
     depth: "22 cm",
     reason: "Moderate rainfall and surface runoff",
+    source: "Demo",
   },
   {
     name: "Guindy",
@@ -71,6 +89,7 @@ const floodZones: FloodZone[] = [
     risk: "Low",
     depth: "8 cm",
     reason: "Drainage currently within simulated capacity",
+    source: "Demo",
   },
 ];
 
@@ -149,14 +168,66 @@ function RecenterMap({
 export default function LiveFloodMap() {
   const [selectedZone, setSelectedZone] = useState<FloodZone | null>(null);
   const [showZones, setShowZones] = useState(true);
+  const [zones, setZones] = useState<FloodZone[]>(floodZones);
+  const [loading, setLoading] = useState(true);
+  const [backendError, setBackendError] = useState(false);
 
   const center: [number, number] = [13.05, 80.24];
 
+  useEffect(() => {
+    async function loadFloodRisk() {
+      try {
+        setLoading(true);
+        setBackendError(false);
+
+        const response: BackendRiskResponse = await getFloodRisk();
+
+        const backendData = response.data || [];
+
+        const updatedZones = floodZones.map((zone) => {
+          const backendZone = backendData.find(
+            (item) => item.area.toLowerCase() === zone.name.toLowerCase()
+          );
+
+          if (!backendZone) {
+            return zone;
+          }
+
+          const backendRisk = backendZone.category as RiskLevel;
+
+          const validRisk: RiskLevel =
+            backendRisk === "Low" ||
+            backendRisk === "Moderate" ||
+            backendRisk === "High" ||
+            backendRisk === "Critical"
+              ? backendRisk
+              : zone.risk;
+
+          return {
+            ...zone,
+            risk: validRisk,
+            source: "Backend" as const,
+          };
+        });
+
+        setZones(updatedZones);
+      } catch (error) {
+        console.error("Flood-risk backend unavailable:", error);
+        setBackendError(true);
+        setZones(floodZones);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadFloodRisk();
+  }, []);
+
   const counts = {
-    Low: floodZones.filter((z) => z.risk === "Low").length,
-    Moderate: floodZones.filter((z) => z.risk === "Moderate").length,
-    High: floodZones.filter((z) => z.risk === "High").length,
-    Critical: floodZones.filter((z) => z.risk === "Critical").length,
+    Low: zones.filter((z) => z.risk === "Low").length,
+    Moderate: zones.filter((z) => z.risk === "Moderate").length,
+    High: zones.filter((z) => z.risk === "High").length,
+    Critical: zones.filter((z) => z.risk === "Critical").length,
   };
 
   return (
@@ -167,6 +238,7 @@ export default function LiveFloodMap() {
           <div>
             <div className="mb-2 flex items-center gap-2">
               <MapPin size={22} />
+
               <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">
                 DEMO / SIMULATED DATA
               </span>
@@ -177,19 +249,56 @@ export default function LiveFloodMap() {
             </h1>
 
             <p className="mt-2 text-sm text-blue-50">
-              Interactive Chennai flood-risk visualization with simulated
-              flood zones and location-level information.
+              Interactive Chennai flood-risk visualization using
+              backend-connected simulated risk data and demo map geometry.
             </p>
           </div>
 
           <div className="rounded-xl bg-white/10 px-4 py-3">
             <div className="flex items-center gap-2">
               <Clock size={17} />
-              <span className="text-sm">Prototype Monitoring</span>
+              <span className="text-sm">
+                Prototype Monitoring
+              </span>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Backend Status */}
+      {loading && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <p className="text-sm font-semibold text-blue-900">
+            Loading flood-risk data from backend...
+          </p>
+        </div>
+      )}
+
+      {!loading && backendError && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-900">
+            Backend unavailable — showing DEMO / SIMULATED DATA.
+          </p>
+
+          <p className="mt-1 text-sm text-amber-800">
+            The map is still available using the existing simulated
+            flood-zone values.
+          </p>
+        </div>
+      )}
+
+      {!loading && !backendError && (
+        <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+          <p className="text-sm font-semibold text-green-900">
+            Flood-risk data connected to backend successfully.
+          </p>
+
+          <p className="mt-1 text-sm text-green-800">
+            Risk categories for available backend areas are displayed on
+            the map. Map locations and depth values remain simulated.
+          </p>
+        </div>
+      )}
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -200,7 +309,9 @@ export default function LiveFloodMap() {
               className="rounded-xl border bg-white p-4 shadow-sm"
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">{risk} Risk</span>
+                <span className="text-sm text-gray-500">
+                  {risk} Risk
+                </span>
 
                 <span
                   className="h-3 w-3 rounded-full"
@@ -231,7 +342,8 @@ export default function LiveFloodMap() {
             </h2>
 
             <p className="text-xs text-gray-500">
-              Click a marker or flood zone to inspect the simulated conditions.
+              Click a marker or flood zone to inspect the simulated
+              conditions.
             </p>
           </div>
 
@@ -252,14 +364,14 @@ export default function LiveFloodMap() {
             className="h-full w-full"
           >
             <TileLayer
-              attribution='&copy; OpenStreetMap contributors'
+              attribution="&copy; OpenStreetMap contributors"
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
             <RecenterMap position={center} />
 
             {showZones &&
-              floodZones.map((zone) => {
+              zones.map((zone) => {
                 const style = riskStyles[zone.risk];
 
                 return (
@@ -305,7 +417,12 @@ export default function LiveFloodMap() {
                           </p>
 
                           <p>
-                            Estimated depth: <b>{zone.depth}</b>
+                            Estimated depth:{" "}
+                            <b>{zone.depth}</b>
+                          </p>
+
+                          <p className="mt-1 text-xs text-gray-500">
+                            Source: {zone.source}
                           </p>
                         </div>
                       </Popup>
@@ -323,7 +440,9 @@ export default function LiveFloodMap() {
         <div className="rounded-2xl border bg-white p-6 shadow-sm">
           <div className="flex items-center gap-2">
             <Layers size={20} className="text-blue-600" />
-            <h2 className="font-bold text-gray-900">Risk Legend</h2>
+            <h2 className="font-bold text-gray-900">
+              Risk Legend
+            </h2>
           </div>
 
           <div className="mt-5 space-y-3">
@@ -359,6 +478,7 @@ export default function LiveFloodMap() {
         <div className="rounded-2xl border bg-white p-6 shadow-sm lg:col-span-2">
           <div className="flex items-center gap-2">
             <Info size={20} className="text-blue-600" />
+
             <h2 className="font-bold text-gray-900">
               Selected Area
             </h2>
@@ -390,10 +510,15 @@ export default function LiveFloodMap() {
 
               <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="rounded-xl bg-blue-50 p-4">
-                  <Droplets className="text-blue-600" size={20} />
+                  <Droplets
+                    className="text-blue-600"
+                    size={20}
+                  />
+
                   <p className="mt-2 text-xs text-gray-500">
                     Estimated Water Depth
                   </p>
+
                   <p className="text-xl font-bold">
                     {selectedZone.depth}
                   </p>
@@ -404,9 +529,11 @@ export default function LiveFloodMap() {
                     className="text-orange-600"
                     size={20}
                   />
+
                   <p className="mt-2 text-xs text-gray-500">
                     Primary Risk Driver
                   </p>
+
                   <p className="text-sm font-semibold">
                     {selectedZone.reason}
                   </p>
@@ -420,6 +547,7 @@ export default function LiveFloodMap() {
                   size={30}
                   className="mx-auto text-gray-400"
                 />
+
                 <p className="mt-2 text-sm text-gray-500">
                   Select a flood zone on the map to view details.
                 </p>
@@ -441,13 +569,15 @@ export default function LiveFloodMap() {
               <tr className="border-b text-sm text-gray-500">
                 <th className="px-4 py-3">Area</th>
                 <th className="px-4 py-3">Risk</th>
-                <th className="px-4 py-3">Estimated Depth</th>
+                <th className="px-4 py-3">
+                  Estimated Depth
+                </th>
                 <th className="px-4 py-3">Risk Driver</th>
               </tr>
             </thead>
 
             <tbody>
-              {floodZones.map((zone) => (
+              {zones.map((zone) => (
                 <tr
                   key={zone.name}
                   onClick={() => setSelectedZone(zone)}
@@ -490,10 +620,11 @@ export default function LiveFloodMap() {
         </p>
 
         <p className="mt-1 text-sm leading-6 text-amber-800">
-          This map uses simulated flood-risk zones for demonstration.
-          It is not a live government flood-monitoring service. Real
-          deployment would require verified rainfall, water-level, DEM,
-          drainage and other authorized spatial data sources.
+          This map uses simulated flood-risk data. Available risk
+          categories are connected to the FloodGuard backend. Map
+          coordinates, estimated water depths and risk-driver descriptions
+          remain demonstration values. This is not a live government
+          flood-monitoring or GIS service.
         </p>
       </div>
     </div>
