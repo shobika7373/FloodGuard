@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   CloudRain,
   Droplets,
@@ -17,6 +18,7 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import { getRainfall } from "../services/api";
 
 const hourlyRainfall = [
   { time: "12 PM", rainfall: 8 },
@@ -39,38 +41,78 @@ const dailyRainfall = [
   { day: "Sun", rainfall: 52 },
 ];
 
-const stations = [
+const demoStations = [
   {
     id: "RAIN-01",
     location: "T. Nagar",
-    intensity: "42 mm/hr",
+    rainfall: 78,
+    intensity: "78 mm/hr",
     total: "78 mm",
-    status: "Heavy",
+    status: "High",
   },
   {
     id: "RAIN-02",
     location: "Velachery",
-    intensity: "51 mm/hr",
-    total: "94 mm",
-    status: "Very Heavy",
+    rainfall: 65,
+    intensity: "65 mm/hr",
+    total: "65 mm",
+    status: "Moderate",
   },
   {
     id: "RAIN-03",
-    location: "Adyar",
-    intensity: "36 mm/hr",
-    total: "69 mm",
-    status: "Heavy",
+    location: "Saidapet",
+    rainfall: 82,
+    intensity: "82 mm/hr",
+    total: "82 mm",
+    status: "High",
   },
   {
     id: "RAIN-04",
-    location: "Anna Nagar",
-    intensity: "21 mm/hr",
-    total: "43 mm",
+    location: "Adyar",
+    rainfall: 58,
+    intensity: "58 mm/hr",
+    total: "58 mm",
     status: "Moderate",
   },
 ];
 
 export default function Rainfall() {
+  const [rainfallData, setRainfallData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    getRainfall()
+      .then((response) => {
+        const backendData = response.data.map((item: any, index: number) => ({
+          id: `RAIN-0${index + 1}`,
+          location: item.area,
+          rainfall: item.rainfall,
+          intensity: `${item.rainfall} mm/hr`,
+          total: `${item.rainfall} mm`,
+          status: item.intensity,
+        }));
+
+        setRainfallData(backendData);
+      })
+      .catch((apiError) => {
+        console.error("Rainfall API error:", apiError);
+        setError("Backend unavailable — showing DEMO / SIMULATED DATA.");
+        setRainfallData(demoStations);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-6 text-sm text-slate-500">
+        Loading rainfall data...
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
 
@@ -94,6 +136,13 @@ export default function Rainfall() {
           DEMO / SIMULATED DATA
         </div>
       </div>
+
+      {/* Backend Error / Demo Fallback */}
+      {error && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-700">
+          {error}
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -194,7 +243,6 @@ export default function Rainfall() {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={hourlyRainfall}>
                 <CartesianGrid strokeDasharray="3 3" />
-
                 <XAxis dataKey="time" />
 
                 <YAxis
@@ -225,6 +273,7 @@ export default function Rainfall() {
             <h2 className="text-lg font-semibold text-slate-900">
               7-Day Rainfall
             </h2>
+
             <p className="text-sm text-slate-500">
               Simulated rainfall accumulation
             </p>
@@ -234,7 +283,6 @@ export default function Rainfall() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dailyRainfall}>
                 <CartesianGrid strokeDasharray="3 3" />
-
                 <XAxis dataKey="day" />
 
                 <YAxis
@@ -326,7 +374,7 @@ export default function Rainfall() {
 
             <tbody className="divide-y divide-slate-100">
 
-              {stations.map((station) => (
+              {rainfallData.map((station) => (
                 <tr
                   key={station.id}
                   className="transition hover:bg-slate-50"
@@ -335,6 +383,7 @@ export default function Rainfall() {
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-2">
                       <Gauge className="h-4 w-4 text-blue-600" />
+
                       <span className="font-medium text-slate-900">
                         {station.id}
                       </span>

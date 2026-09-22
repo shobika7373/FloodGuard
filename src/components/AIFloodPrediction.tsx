@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Brain,
   Clock,
@@ -17,6 +17,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { getAIPrediction } from "../services/api";
 
 type Prediction = {
   time: string;
@@ -24,7 +25,7 @@ type Prediction = {
   risk: "Low" | "Moderate" | "High" | "Critical";
 };
 
-const predictions: Prediction[] = [
+const demoPredictions: Prediction[] = [
   { time: "30 min", probability: 58, risk: "Moderate" },
   { time: "1 hour", probability: 68, risk: "High" },
   { time: "2 hours", probability: 79, risk: "High" },
@@ -39,21 +40,89 @@ const riskColor = {
 };
 
 export default function AIFloodPrediction() {
+  const [predictions, setPredictions] =
+    useState<Prediction[]>(demoPredictions);
+
+  const [loading, setLoading] = useState(true);
+  const [backendError, setBackendError] = useState(false);
+  const [modelName, setModelName] = useState(
+    "Prototype Rule-Based Model"
+  );
+  const [modelNote, setModelNote] = useState(
+    "Not a trained production ML model."
+  );
+
   const [selectedTime, setSelectedTime] = useState("3 hours");
+
+  useEffect(() => {
+    async function loadPrediction() {
+      try {
+        setLoading(true);
+        setBackendError(false);
+
+        const response = await getAIPrediction();
+
+        if (response?.predictions?.length) {
+          const mappedPredictions: Prediction[] =
+            response.predictions.map((item: any) => ({
+              time: item.horizon,
+              probability: item.probability,
+              risk: item.category,
+            }));
+
+          setPredictions(mappedPredictions);
+        }
+
+        if (response?.model) {
+          setModelName(response.model);
+        }
+
+        if (response?.note) {
+          setModelNote(response.note);
+        }
+      } catch (error) {
+        console.error("AI prediction backend error:", error);
+        setBackendError(true);
+        setPredictions(demoPredictions);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPrediction();
+  }, []);
 
   const selected =
     predictions.find(
       (item) => item.time.toLowerCase() === selectedTime
-    ) ?? predictions[3];
+    ) ?? predictions[predictions.length - 1];
 
   return (
     <div className="space-y-6">
+      {/* Backend Status */}
+      {loading && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <p className="text-sm font-semibold text-blue-900">
+            Loading AI prediction data...
+          </p>
+        </div>
+      )}
+
+      {backendError && !loading && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-900">
+            Backend unavailable — showing DEMO / SIMULATED DATA.
+          </p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="rounded-2xl bg-gradient-to-r from-purple-700 to-indigo-700 p-6 text-white shadow-lg">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2">
               <Brain size={24} />
+
               <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">
                 DEMO / SIMULATED AI
               </span>
@@ -70,8 +139,13 @@ export default function AIFloodPrediction() {
           </div>
 
           <div className="rounded-xl bg-white/10 px-5 py-4 text-center">
-            <p className="text-xs text-purple-200">Prediction Status</p>
-            <p className="mt-1 font-bold">Analysis Ready</p>
+            <p className="text-xs text-purple-200">
+              Prediction Status
+            </p>
+
+            <p className="mt-1 font-bold">
+              {loading ? "Loading..." : "Analysis Ready"}
+            </p>
           </div>
         </div>
       </div>
@@ -85,6 +159,7 @@ export default function AIFloodPrediction() {
             <h2 className="text-xl font-bold text-gray-900">
               Prediction Horizon
             </h2>
+
             <p className="text-sm text-gray-500">
               Select a future time window
             </p>
@@ -137,8 +212,9 @@ export default function AIFloodPrediction() {
               <p className="text-sm text-gray-500">
                 Predicted Risk
               </p>
+
               <h2 className="text-2xl font-bold">
-                {selected.risk}
+                {selected?.risk ?? "Loading"}
               </h2>
             </div>
           </div>
@@ -146,7 +222,7 @@ export default function AIFloodPrediction() {
           <div className="mt-6 flex items-center justify-center">
             <div className="flex h-40 w-40 flex-col items-center justify-center rounded-full border-[14px] border-red-200">
               <span className="text-4xl font-bold text-gray-900">
-                {selected.probability}%
+                {selected?.probability ?? "--"}%
               </span>
 
               <span className="text-xs text-gray-500">
@@ -161,7 +237,7 @@ export default function AIFloodPrediction() {
             </p>
 
             <p className="mt-1 font-bold text-gray-900">
-              {selected.time}
+              {selected?.time ?? "Loading"}
             </p>
           </div>
         </div>
@@ -175,11 +251,14 @@ export default function AIFloodPrediction() {
               </h2>
 
               <p className="text-sm text-gray-500">
-                Simulated prediction probability
+                Backend-provided simulated prediction probability
               </p>
             </div>
 
-            <TrendingUp className="text-purple-600" size={23} />
+            <TrendingUp
+              className="text-purple-600"
+              size={23}
+            />
           </div>
 
           <div className="h-72">
@@ -237,7 +316,9 @@ export default function AIFloodPrediction() {
               key={name}
               className="rounded-xl bg-gray-50 p-4"
             >
-              <p className="text-sm text-gray-500">{name}</p>
+              <p className="text-sm text-gray-500">
+                {name}
+              </p>
 
               <p className="mt-2 text-xl font-bold text-gray-900">
                 {value}
@@ -284,7 +365,9 @@ export default function AIFloodPrediction() {
 
                   <td className="px-4 py-4">
                     <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${riskColor[prediction.risk]}`}
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        riskColor[prediction.risk]
+                      }`}
                     >
                       {prediction.risk}
                     </span>
@@ -313,7 +396,10 @@ export default function AIFloodPrediction() {
       {/* Model Explanation */}
       <div className="rounded-2xl border bg-indigo-50 p-6">
         <div className="flex items-start gap-3">
-          <Brain className="mt-1 text-indigo-700" size={24} />
+          <Brain
+            className="mt-1 text-indigo-700"
+            size={24}
+          />
 
           <div>
             <h2 className="font-bold text-indigo-900">
@@ -321,10 +407,11 @@ export default function AIFloodPrediction() {
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-indigo-800">
-              The prototype represents a future machine-learning pipeline
-              where rainfall, water level, drainage utilization, elevation,
-              soil saturation and historical vulnerability can be combined
-              to estimate short-term flood risk.
+              {modelName}. {modelNote} This prototype represents a future
+              machine-learning pipeline where rainfall, water level,
+              drainage utilization, elevation, soil saturation and
+              historical vulnerability can be combined to estimate
+              short-term flood risk.
             </p>
 
             <div className="mt-4 flex flex-wrap gap-2">
@@ -377,8 +464,8 @@ export default function AIFloodPrediction() {
 
         <p className="mt-1 text-sm leading-6 text-amber-800">
           All predictions and input values on this page are simulated.
-          This module does not currently run a trained machine-learning model
-          or provide official flood forecasts.
+          This module does not currently run a trained machine-learning
+          model or provide official flood forecasts.
         </p>
       </div>
     </div>
