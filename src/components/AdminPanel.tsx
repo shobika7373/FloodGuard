@@ -1,15 +1,16 @@
+import { useState } from "react";
 import {
+  Users,
+  Activity,
   Settings,
   Database,
   Brain,
   Server,
   ShieldCheck,
-  Users,
-  Activity,
   AlertTriangle,
   RefreshCw,
-} 
-from "lucide-react";
+  X,
+} from "lucide-react";
 
 const systemModules = [
   {
@@ -39,6 +40,25 @@ const systemModules = [
 ];
 
 export default function AdminPanel() {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshMessage, setRefreshMessage] = useState("");
+
+  const [showDataSources, setShowDataSources] = useState(false);
+  const [showConfiguration, setShowConfiguration] = useState(false);
+
+  const [riskThreshold, setRiskThreshold] = useState(80);
+  const [predictionHorizon, setPredictionHorizon] = useState("3 Hours");
+
+  const handleRefreshSystem = () => {
+    setIsRefreshing(true);
+    setRefreshMessage("");
+
+    setTimeout(() => {
+      setIsRefreshing(false);
+      setRefreshMessage("System status refreshed successfully.");
+    }, 1000);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -98,6 +118,7 @@ export default function AdminPanel() {
           <h2 className="text-xl font-bold text-gray-900">
             System Modules
           </h2>
+
           <p className="text-sm text-gray-500">
             Current status of major FLOODGUARD components.
           </p>
@@ -122,6 +143,7 @@ export default function AdminPanel() {
                       <h3 className="font-semibold text-gray-900">
                         {module.name}
                       </h3>
+
                       <p className="mt-1 text-sm text-gray-500">
                         {module.description}
                       </p>
@@ -160,7 +182,7 @@ export default function AdminPanel() {
             </div>
 
             <span className="rounded-lg border bg-white px-4 py-2 font-semibold">
-              80 / 100
+              {riskThreshold} / 100
             </span>
           </div>
 
@@ -173,7 +195,7 @@ export default function AdminPanel() {
             </div>
 
             <span className="rounded-lg border bg-white px-4 py-2 font-semibold">
-              3 Hours
+              {predictionHorizon}
             </span>
           </div>
 
@@ -225,28 +247,59 @@ export default function AdminPanel() {
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Administrative Actions */}
       <div className="rounded-2xl border bg-gray-50 p-6">
         <h2 className="text-xl font-bold text-gray-900">
           Administrative Actions
         </h2>
 
         <div className="mt-5 flex flex-wrap gap-3">
-          <button className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white">
-            <RefreshCw size={17} />
-            Refresh System
+          {/* Refresh System */}
+          <button
+            onClick={handleRefreshSystem}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw
+              size={17}
+              className={isRefreshing ? "animate-spin" : ""}
+            />
+
+            {isRefreshing ? "Refreshing..." : "Refresh System"}
           </button>
 
-          <button className="flex items-center gap-2 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-700">
+          {/* Check Data Sources */}
+          <button
+            onClick={() => setShowDataSources(true)}
+            className="flex items-center gap-2 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+          >
             <Database size={17} />
             Check Data Sources
           </button>
 
-          <button className="flex items-center gap-2 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-700">
+          {/* Configuration */}
+          <button
+            onClick={() => setShowConfiguration(true)}
+            className="flex items-center gap-2 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+          >
             <Settings size={17} />
             Configuration
           </button>
         </div>
+
+        {/* Refresh Message */}
+        {refreshMessage && (
+          <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3">
+            <p className="text-sm font-semibold text-green-800">
+              {refreshMessage}
+            </p>
+
+            <p className="mt-1 text-xs text-green-700">
+              DEMO / PROTOTYPE — No external system was actually restarted or
+              refreshed.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Notice */}
@@ -269,6 +322,169 @@ export default function AdminPanel() {
           </p>
         </div>
       </div>
+
+      {/* Data Source Modal */}
+      {showDataSources && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">
+                Data Source Check
+              </h2>
+
+              <button
+                onClick={() => setShowDataSources(false)}
+                className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {[
+                "Rainfall Data",
+                "Water Level Data",
+                "Drainage Data",
+                "Historical Flood Data",
+                "Spatial/GIS Data",
+                "Community Reports",
+              ].map((source) => (
+                <div
+                  key={source}
+                  className="flex items-center justify-between rounded-lg bg-gray-50 p-3"
+                >
+                  <span className="text-sm font-medium text-gray-800">
+                    {source}
+                  </span>
+
+                  <span className="text-sm font-semibold text-green-600">
+                    Available — DEMO
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm font-bold text-amber-900">
+                DEMO / SIMULATED DATA
+              </p>
+
+              <p className="mt-1 text-xs leading-5 text-amber-800">
+                These statuses are prototype values and are not verification
+                of live external data sources.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowDataSources(false)}
+              className="mt-5 w-full rounded-lg bg-gray-800 px-4 py-3 text-sm font-semibold text-white hover:bg-gray-700"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Configuration Modal */}
+      {showConfiguration && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">
+                Prototype Configuration
+              </h2>
+
+              <button
+                onClick={() => setShowConfiguration(false)}
+                className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Risk Threshold */}
+            <div className="mt-6">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-gray-800">
+                  Flood Risk Threshold
+                </label>
+
+                <span className="font-bold text-indigo-700">
+                  {riskThreshold} / 100
+                </span>
+              </div>
+
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={riskThreshold}
+                onChange={(e) => setRiskThreshold(Number(e.target.value))}
+                className="mt-3 w-full"
+              />
+
+              <p className="mt-1 text-xs text-gray-500">
+                Current value: {riskThreshold}
+              </p>
+            </div>
+
+            {/* Prediction Horizon */}
+            <div className="mt-6">
+              <label className="text-sm font-semibold text-gray-800">
+                Prediction Horizon
+              </label>
+
+              <select
+                value={predictionHorizon}
+                onChange={(e) => setPredictionHorizon(e.target.value)}
+                className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800"
+              >
+                <option value="30 Minutes">30 Minutes</option>
+                <option value="1 Hour">1 Hour</option>
+                <option value="2 Hours">2 Hours</option>
+                <option value="3 Hours">3 Hours</option>
+              </select>
+            </div>
+
+            {/* Demo Mode */}
+            <div className="mt-6 rounded-lg border border-green-200 bg-green-50 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-gray-800">
+                  Demo Mode
+                </p>
+
+                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
+                  Enabled
+                </span>
+              </div>
+
+              <p className="mt-2 text-xs leading-5 text-gray-600">
+                Demo Mode prevents simulated values from being treated as
+                live data.
+              </p>
+            </div>
+
+            {/* Prototype Notice */}
+            <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <p className="text-xs font-bold text-amber-900">
+                DEMO / PROTOTYPE CONFIGURATION
+              </p>
+
+              <p className="mt-1 text-xs leading-5 text-amber-800">
+                These settings are local interface values for the prototype.
+                They do not change a production server or external system.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowConfiguration(false)}
+              className="mt-5 w-full rounded-lg bg-gray-800 px-4 py-3 text-sm font-semibold text-white hover:bg-gray-700"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
