@@ -190,10 +190,7 @@ export default function AIActionEngine() {
               <p className="text-xs uppercase text-slate-500">Priority</p>
               <p className="mt-1 text-xl font-bold text-red-600">{highestPriority.risk?? "Backend"}</p>
             </div>
-            <div>
-              <p className="text-xs uppercase text-slate-500">Expected Time</p>
-              <p className="mt-1 text-xl font-bold text-orange-600">{highestPriority.time?? "Demo"}</p>
-            </div>
+            
           </div>
           <p className="mt-4 text-sm text-slate-600">
             {highestPriority.reason?? "Backend simulated flood-risk conditions are used to generate this recommendation."}
@@ -290,6 +287,7 @@ export default function AIActionEngine() {
 }
 
       
+
 
 
 
