@@ -92,7 +92,7 @@ export default function AIActionEngine() {
               priority: item.priority,
               location: item.area,
               action: item.action,
-              risk: "Backend",
+              risk: item.priority,
               time: "Demo",
               reason: "Recommendation generated from simulated backend flood-risk conditions",
               icon: getIcon(item.priority),
@@ -187,7 +187,7 @@ export default function AIActionEngine() {
               <p className="mt-2 text-xl font-bold text-slate-900">{highestPriority.location}</p>
             </div>
             <div>
-              <p className="text-xs uppercase text-slate-500">Risk</p>
+              <p className="text-xs uppercase text-slate-500">Priority</p>
               <p className="mt-1 text-xl font-bold text-red-600">{highestPriority.risk?? "Backend"}</p>
             </div>
             <div>
@@ -248,7 +248,7 @@ export default function AIActionEngine() {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <div className="text-sm text-slate-500">Risk: {item.risk?? "Demo"}</div>
+                    <div className="text-sm text-slate-500">Priority: {item.risk ?? "Demo"}</div>
                     <p className="mt-2 text-sm text-slate-600">{item.reason}</p>
                     <div className="mt-3 flex items-center gap-2">
                       <ArrowRight className="h-4 w-4 text-slate-500" />
@@ -290,3 +290,4 @@ export default function AIActionEngine() {
 }
 
       
+
