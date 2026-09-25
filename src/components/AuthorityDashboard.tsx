@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Shield,
   AlertTriangle,
@@ -9,6 +10,7 @@ import {
   Clock,
   Siren,
   ArrowUpRight,
+  X,
 } from "lucide-react";
 import {
   LineChart,
@@ -58,6 +60,8 @@ const incidents = [
 ];
 
 export default function AuthorityDashboard() {
+  const [showResponsePlan, setShowResponsePlan] = useState(false);
+  const [reviewedSteps, setReviewedSteps] = useState<boolean[]>(Array(5).fill(false));
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -213,7 +217,7 @@ export default function AuthorityDashboard() {
               ))}
             </div>
 
-            <button className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700">
+            <button onClick={()=> setShowResponsePlan(true)} className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700">
               Review Response Plan
               <ArrowUpRight size={17} />
             </button>
@@ -341,6 +345,47 @@ export default function AuthorityDashboard() {
           services, authorized agencies and operational validation.
         </p>
       </div>
+          
+      {showResponsePlan && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+    <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="mb-2 inline-flex rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-xs font-semibold text-yellow-300">
+            DEMO / SIMULATED DATA
+          </div>
+          <h2 className="text-2xl font-bold text-white">Priority Response Plan Review</h2>
+          <p className="mt-1 text-sm text-slate-400">Prototype response for T. Nagar - CRITICAL risk - Prototype response recommendations</p>
+        </div>
+        <button onClick={() => setShowResponsePlan(false)} className="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white"><X size={20} /></button>
+      </div>
+
+      <div className="mt-6 space-y-3">
+        {[
+          "Verify water level with field team - T. Nagar Market area",
+          "Check drainage pump status - Pumping station 4",
+          "Alert traffic control - Usman Road diversion",
+          "Prepare evacuation notice - Low-lying streets",
+          "Confirm team deployment - Rescue team on standby"
+        ].map((step, idx) => (
+          <label key={idx} className="flex items-start gap-3 rounded-xl border border-slate-700 bg-slate-800/50 p-3 cursor-pointer hover:bg-slate-800">
+            <input type="checkbox" checked={reviewedSteps[idx]} onChange={(e) => { const ns = [...reviewedSteps]; ns[idx] = e.target.checked; setReviewedSteps(ns); }} className="mt-1 h-4 w-4" />
+            <span className={`text-sm ${reviewedSteps[idx]? 'line-through text-slate-500' : 'text-slate-200'}`}>{step}</span>
+          </label>
+        ))}
+      </div>
+
+      <p className="mt-4 text-sm text-slate-400">{reviewedSteps.filter(Boolean).length} / 5 reviewed - Progress tracking</p>
+
+      <div className="mt-4 flex gap-3">
+        <button onClick={() => setShowResponsePlan(false)} className="flex-1 rounded-lg border border-slate-700 py-2.5 font-semibold text-slate-300 hover:bg-slate-800">Close</button>
+        <button onClick={() => { setShowResponsePlan(false); alert('Response Plan Reviewed - Demo Success!'); }} disabled={reviewedSteps.filter(Boolean).length < 5} className="flex-1 rounded-lg bg-green-600 py-2.5 font-semibold text-white hover:bg-green-700 disabled:opacity-50">
+          Confirm Review ({reviewedSteps.filter(Boolean).length}/5)
+        </button>
+      </div>
     </div>
-  );
-}
+  </div>
+      )}
+  </div>
+      );
+    }
