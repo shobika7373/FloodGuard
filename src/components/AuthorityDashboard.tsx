@@ -345,50 +345,7 @@ export default function AuthorityDashboard() {
           services, authorized agencies and operational validation.
         </p>
       </div>
-            {/* Response Plan Popup */}
-      {showResponsePlan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold">Review Response Plan - T. Nagar</h3>
-              <button onClick={() => setShowResponsePlan(false)} className="rounded-full p-2 hover:bg-gray-100">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="mt-5 space-y-3">
-              {[
-                "1. Verify water level with field team - T. Nagar Market area",
-                "2. Check drainage pump status - Pumping station 4",
-                "3. Alert traffic control - Usman Road diversion",
-                "4. Prepare evacuation notice - Low-lying streets",
-                "5. Confirm team deployment - Rescue team on standby"
-              ].map((step, idx) => (
-                <label key={idx} className="flex items-start gap-3 rounded-lg border p-3 cursor-pointer hover:bg-gray-50">
-                  <input
-                    type="checkbox"
-                    checked={reviewedSteps[idx]}
-                    onChange={(e) => {
-                      const newSteps = [...reviewedSteps];
-                      newSteps[idx] = e.target.checked;
-                      setReviewedSteps(newSteps);
-                    }}
-                    className="mt-1 h-4 w-4"
-                  />
-                  <span className={`text-sm ${reviewedSteps[idx]? 'line-through text-gray-400' : 'text-gray-700'}`}>{step}</span>
-                </label>
-              ))}
-            </div>
-
-            <div className="mt-6 flex gap-3">
-              <button onClick={() => setShowResponsePlan(false)} className="flex-1 rounded-lg border py-2.5 font-semibold">Close</button>
-              <button onClick={() => { setShowResponsePlan(false); alert('Response Plan Reviewed - Demo Success! This is for SIH presentation.'); }} disabled={reviewedSteps.filter(Boolean).length < 5} className="flex-1 rounded-lg bg-green-600 py-2.5 font-semibold text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                Confirm Review ({reviewedSteps.filter(Boolean).length}/5)
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          
       {showResponsePlan && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
     <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
@@ -398,7 +355,7 @@ export default function AuthorityDashboard() {
             DEMO / SIMULATED DATA
           </div>
           <h2 className="text-2xl font-bold text-white">Priority Response Plan Review</h2>
-          <p className="mt-1 text-sm text-slate-400">Prototype response planning for this simulated T. Nagar critical risk scenario.</p>
+          <p className="mt-1 text-sm text-slate-400">Prototype response for T. Nagar - CRITICAL risk - Prototype response recommendations</p>
         </div>
         <button onClick={() => setShowResponsePlan(false)} className="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white"><X size={20} /></button>
       </div>
@@ -418,7 +375,9 @@ export default function AuthorityDashboard() {
         ))}
       </div>
 
-      <div className="mt-6 flex gap-3">
+      <p className="mt-4 text-sm text-slate-400">{reviewedSteps.filter(Boolean).length} / 5 reviewed - Progress tracking</p>
+
+      <div className="mt-4 flex gap-3">
         <button onClick={() => setShowResponsePlan(false)} className="flex-1 rounded-lg border border-slate-700 py-2.5 font-semibold text-slate-300 hover:bg-slate-800">Close</button>
         <button onClick={() => { setShowResponsePlan(false); alert('Response Plan Reviewed - Demo Success!'); }} disabled={reviewedSteps.filter(Boolean).length < 5} className="flex-1 rounded-lg bg-green-600 py-2.5 font-semibold text-white hover:bg-green-700 disabled:opacity-50">
           Confirm Review ({reviewedSteps.filter(Boolean).length}/5)
@@ -426,7 +385,7 @@ export default function AuthorityDashboard() {
       </div>
     </div>
   </div>
-)}
-    </div>
-  );
-}
+      )}
+  </div>
+      );
+    }
