@@ -1,8 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from .models.flood import FloodRiskInput, FloodRiskResponse
 from .services.risk_engine import calculate_flood_risk
+from .services.photo_analysis import analyze_photo
 from .data.demo_scenarios import get_demo_scenario
 
 
@@ -433,3 +434,19 @@ def get_dashboard():
 
         "system_status": "Prototype Operational",
     }
+
+
+@app.post("/api/photo-water-depth")
+async def photo_water_depth(file: UploadFile = File(...)):
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=400,
+            detail="Please upload a valid image file.",
+        )
+
+    image_bytes = await file.read()
+
+    try:
+        return analyze_photo(image_bytes, file.filename)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
