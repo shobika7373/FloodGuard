@@ -1,273 +1,51 @@
-import {
-  Settings,
-  Database,
-  Brain,
-  Server,
-  ShieldCheck,
-  Users,
-  Activity,
-  AlertTriangle,
-  RefreshCw,
-} 
-from "lucide-react";
-
-const systemModules = [
-  {
-    name: "Flood Risk Engine",
-    description: "Processes rainfall, water level and vulnerability inputs.",
-    status: "Operational",
-    icon: Brain,
-  },
-  {
-    name: "Spatial Database",
-    description: "Stores flood zones and geographic information.",
-    status: "Operational",
-    icon: Database,
-  },
-  {
-    name: "API Services",
-    description: "Backend-ready interface for future data integration.",
-    status: "Prototype",
-    icon: Server,
-  },
-  {
-    name: "Security Layer",
-    description: "Role-based access concept for authorized users.",
-    status: "Operational",
-    icon: ShieldCheck,
-  },
-];
-
-export default function AdminPanel() {
+﻿import { useState, useEffect } from "react";
+import { Settings, CheckCircle, XCircle, CheckCircle2, AlertTriangle, RefreshCw, Database } from "lucide-react";
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+export default function AdminPanel(){
+  const [checks,setChecks]=useState<any[]>([]);
+  const [loading,setLoading]=useState(true);
+  const [statusMessage,setStatusMessage]=useState<{type:string,text:string}|null>(null);
+  const [loadingAction,setLoadingAction]=useState<string|null>(null);
+  const [lastRefresh,setLastRefresh]=useState<string|null>(null);
+  const [dataSources,setDataSources]=useState<any[]>([]);
+  const [showConfiguration,setShowConfiguration]=useState(false);
+  const getApiBaseUrl=()=>API_URL;
+  useEffect(()=>{
+    const run=async()=>{
+      const eps=[{name:"Dashboard API",url:`${API_URL}/api/dashboard`},{name:"Rainfall API",url:`${API_URL}/api/rainfall`},{name:"Water Levels API",url:`${API_URL}/api/water-levels`},{name:"Flood Risk API",url:`${API_URL}/api/flood-risk`},{name:"Drainage API",url:`${API_URL}/api/drainage`},{name:"Alerts API",url:`${API_URL}/api/alerts`},{name:"AI Prediction API",url:`${API_URL}/api/ai-prediction`},{name:"Community Reports API",url:`${API_URL}/api/community-reports`}];
+      const res=[];
+      for(const ep of eps){try{const r=await fetch(ep.url); const d=await r.json(); res.push({...ep,status:r.ok?"OK":"FAIL",mode:d.status||"Live",ok:r.ok});}catch{res.push({...ep,status:"FAIL",mode:"Error",ok:false});}}
+      setChecks(res); setLoading(false);
+    }; run();
+  },[]);
+  const handleRefreshSystem=async()=>{
+    setLoadingAction("refresh");
+    try{await fetch(`${API_URL}/api/dashboard`); setLastRefresh(new Date().toLocaleString()); setStatusMessage({type:"success",text:"System refreshed successfully!"});}catch{setStatusMessage({type:"error",text:"Failed to refresh system"});}
+    setLoadingAction(null); setTimeout(()=>setStatusMessage(null),4000);
+  };
+  const handleCheckDataSources=async()=>{
+    setLoadingAction("datasources");
+    const eps=[{name:"Rainfall Data",url:`${API_URL}/api/rainfall`},{name:"Water Levels",url:`${API_URL}/api/water-levels`},{name:"Drainage Network",url:`${API_URL}/api/drainage`},{name:"AI Predictions",url:`${API_URL}/api/ai-prediction`},{name:"Community Reports",url:`${API_URL}/api/community-reports`}];
+    const rs=[];
+    for(const ep of eps){try{const r=await fetch(ep.url); rs.push({name:ep.name,status:r.ok?"Available":"Unavailable",mode:r.ok?"Live/Demo":"Offline"});}catch{rs.push({name:ep.name,status:"Unavailable",mode:"Error"});}}
+    setDataSources(rs); setStatusMessage({type:"info",text:`Checked ${rs.length} data sources`}); setLoadingAction(null); setTimeout(()=>setStatusMessage(null),4000);
+  };
+  const handleConfiguration=()=>setShowConfiguration(!showConfiguration);
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="rounded-2xl bg-gradient-to-r from-indigo-700 to-purple-700 p-6 text-white shadow-lg">
-        <div className="flex items-center gap-4">
-          <div className="rounded-xl bg-white/15 p-3">
-            <Settings size={28} />
-          </div>
-
-          <div>
-            <div className="mb-2 flex items-center gap-2">
-              <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">
-                DEMO / SIMULATED DATA
-              </span>
-            </div>
-
-            <h1 className="text-3xl font-bold">Admin Panel</h1>
-
-            <p className="mt-2 text-sm text-indigo-100">
-              Manage system configuration, platform modules and operational
-              status for the FLOODGUARD prototype.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Overview */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <div className="rounded-xl border bg-white p-5 shadow-sm">
-          <Activity className="text-green-600" size={22} />
-          <p className="mt-3 text-sm text-gray-500">System Status</p>
-          <p className="text-xl font-bold text-green-700">Operational</p>
-        </div>
-
-        <div className="rounded-xl border bg-white p-5 shadow-sm">
-          <Database className="text-blue-600" size={22} />
-          <p className="mt-3 text-sm text-gray-500">Data Sources</p>
-          <p className="text-xl font-bold">6</p>
-        </div>
-
-        <div className="rounded-xl border bg-white p-5 shadow-sm">
-          <Brain className="text-purple-600" size={22} />
-          <p className="mt-3 text-sm text-gray-500">AI Modules</p>
-          <p className="text-xl font-bold">4</p>
-        </div>
-
-        <div className="rounded-xl border bg-white p-5 shadow-sm">
-          <Users className="text-orange-600" size={22} />
-          <p className="mt-3 text-sm text-gray-500">User Roles</p>
-          <p className="text-xl font-bold">3</p>
-        </div>
-      </div>
-
-      {/* System Modules */}
-      <div className="rounded-2xl border bg-white p-6 shadow-sm">
-        <div className="mb-5">
-          <h2 className="text-xl font-bold text-gray-900">
-            System Modules
-          </h2>
-          <p className="text-sm text-gray-500">
-            Current status of major FLOODGUARD components.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {systemModules.map((module) => {
-            const Icon = module.icon;
-
-            return (
-              <div
-                key={module.name}
-                className="rounded-xl border p-5"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex gap-3">
-                    <div className="rounded-lg bg-indigo-50 p-3 text-indigo-700">
-                      <Icon size={22} />
-                    </div>
-
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        {module.name}
-                      </h3>
-                      <p className="mt-1 text-sm text-gray-500">
-                        {module.description}
-                      </p>
-                    </div>
-                  </div>
-
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      module.status === "Operational"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
-                  >
-                    {module.status}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Configuration */}
-      <div className="rounded-2xl border bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-gray-900">
-          System Configuration
-        </h2>
-
-        <div className="mt-5 space-y-4">
-          <div className="flex flex-col gap-3 rounded-xl bg-gray-50 p-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="font-semibold">Flood Risk Threshold</p>
-              <p className="text-sm text-gray-500">
-                Critical risk classification threshold
-              </p>
-            </div>
-
-            <span className="rounded-lg border bg-white px-4 py-2 font-semibold">
-              80 / 100
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-3 rounded-xl bg-gray-50 p-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="font-semibold">Prediction Horizon</p>
-              <p className="text-sm text-gray-500">
-                Prototype nowcasting window
-              </p>
-            </div>
-
-            <span className="rounded-lg border bg-white px-4 py-2 font-semibold">
-              3 Hours
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-3 rounded-xl bg-gray-50 p-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="font-semibold">Demo Mode</p>
-              <p className="text-sm text-gray-500">
-                Prevents prototype values from being treated as live data
-              </p>
-            </div>
-
-            <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700">
-              Enabled
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Access Control */}
-      <div className="rounded-2xl border bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-gray-900">
-          Access Control
-        </h2>
-
-        <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="rounded-xl border p-4">
-            <ShieldCheck className="text-red-600" size={22} />
-            <p className="mt-3 font-semibold">Administrator</p>
-            <p className="mt-1 text-sm text-gray-500">
-              System configuration and management.
-            </p>
-          </div>
-
-          <div className="rounded-xl border p-4">
-            <Activity className="text-blue-600" size={22} />
-            <p className="mt-3 font-semibold">Authority</p>
-            <p className="mt-1 text-sm text-gray-500">
-              Monitoring and response decision support.
-            </p>
-          </div>
-
-          <div className="rounded-xl border p-4">
-            <Users className="text-green-600" size={22} />
-            <p className="mt-3 font-semibold">Public User</p>
-            <p className="mt-1 text-sm text-gray-500">
-              Flood information and community reporting.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Actions */}
+    <div className="p-6 space-y-6">
+      <div className="rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white"><div className="flex items-center gap-4"><div className="rounded-xl bg-white/15 p-3"><Settings size={28}/></div><div><span className="rounded-full bg-white/20 px-3 py-1 text-xs">Connected | CLOUD</span><h1 className="text-3xl font-bold mt-2">Admin Panel</h1><p className="mt-2 text-sm text-indigo-100">Manage system configuration</p></div></div></div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{loading?<div className="col-span-3 text-center py-10">Checking...</div>:checks.map((c,i)=><div key={i} className="rounded-xl border bg-white p-4"><div className="flex justify-between"><h3 className="font-semibold text-sm">{c.name}</h3>{c.ok?<CheckCircle className="text-green-500" size={20}/>:<XCircle className="text-red-500" size={20}/>}</div><p className="text-[11px] text-gray-500 mt-2 truncate">{c.url}</p></div>)}</div>
       <div className="rounded-2xl border bg-gray-50 p-6">
-        <h2 className="text-xl font-bold text-gray-900">
-          Administrative Actions
-        </h2>
-
+        <h2 className="text-xl font-bold text-gray-900">Administrative Actions</h2>
+        {statusMessage && (<div className={`mt-4 flex gap-2 rounded-lg border p-3 text-sm ${statusMessage.type==="success"?"border-green-200 bg-green-50 text-green-800":statusMessage.type==="error"?"border-red-200 bg-red-50 text-red-800":"border-blue-200 bg-blue-50 text-blue-800"}`}>{statusMessage.type==="error"?<AlertTriangle size={18} className="mt-0.5 shrink-0"/>:<CheckCircle2 size={18} className="mt-0.5 shrink-0"/>}<p>{statusMessage.text}</p></div>)}
         <div className="mt-5 flex flex-wrap gap-3">
-          <button className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white">
-            <RefreshCw size={17} />
-            Refresh System
-          </button>
-
-          <button className="flex items-center gap-2 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-700">
-            <Database size={17} />
-            Check Data Sources
-          </button>
-
-          <button className="flex items-center gap-2 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-700">
-            <Settings size={17} />
-            Configuration
-          </button>
+          <button onClick={handleRefreshSystem} disabled={!!loadingAction} className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"><RefreshCw size={17}/>{loadingAction==="refresh"?"Refreshing...":"Refresh System"}</button>
+          <button onClick={handleCheckDataSources} disabled={!!loadingAction} className="flex items-center gap-2 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-700 disabled:opacity-50"><Database size={17}/>{loadingAction==="datasources"?"Checking...":"Check Data Sources"}</button>
+          <button onClick={handleConfiguration} disabled={!!loadingAction} className="flex items-center gap-2 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-700"><Settings size={17}/>{showConfiguration?"Hide Configuration":"Configuration"}</button>
         </div>
-      </div>
-
-      {/* Notice */}
-      <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-        <AlertTriangle
-          size={20}
-          className="mt-0.5 shrink-0 text-amber-600"
-        />
-
-        <div>
-          <p className="text-sm font-semibold text-amber-900">
-            Prototype Notice
-          </p>
-
-          <p className="mt-1 text-sm leading-6 text-amber-800">
-            This administration interface is a frontend prototype. User
-            authentication, database configuration, API management and
-            production security controls would be implemented in the backend
-            deployment.
-          </p>
-        </div>
+        {lastRefresh && <p className="mt-4 text-sm text-gray-500">Last successful refresh: {lastRefresh}</p>}
+        {dataSources.length>0 && (<div className="mt-6 overflow-x-auto rounded-xl border bg-white"><div className="border-b px-4 py-3"><h3 className="font-semibold">Data Source Status</h3><p className="text-sm text-gray-500">Status is based on actual backend requests.</p></div><table className="w-full text-left text-sm"><thead className="bg-gray-50"><tr><th className="px-4 py-3">Data Source</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Mode</th></tr></thead><tbody>{dataSources.map((s)=><tr key={s.name} className="border-t"><td className="px-4 py-3 font-medium">{s.name}</td><td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${s.status==="Available"?"bg-green-100 text-green-700":"bg-red-100 text-red-700"}`}>{s.status}</span></td><td className="px-4 py-3 text-gray-600">{s.mode}</td></tr>)}</tbody></table></div>)}
+        {showConfiguration && (<div className="mt-6 rounded-xl border bg-white p-5"><h3 className="font-semibold">Application Configuration</h3><div className="mt-4 space-y-3"><div className="rounded-lg bg-gray-50 p-4"><p className="text-sm text-gray-500">API Base URL</p><p className="mt-1 break-all font-semibold">{getApiBaseUrl()}</p></div><div className="rounded-lg bg-gray-50 p-4"><p className="text-sm text-gray-500">Configuration Status</p><p className="mt-1 font-semibold text-green-700">Configured</p></div><div className="rounded-lg bg-gray-50 p-4"><p className="text-sm text-gray-500">Configuration Access</p><p className="mt-1 font-semibold">Read-only</p></div><p className="text-xs text-gray-500">Server configuration and secrets are not exposed or editable from the browser.</p></div></div>)}
       </div>
     </div>
   );
