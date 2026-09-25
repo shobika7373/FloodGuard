@@ -1,4 +1,6 @@
-const API_BASE_URL = "https://floodguard-backend-x0sv.onrender.com";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://floodguard-backend-x0sv.onrender.com";
 
 async function apiGet(endpoint: string) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`);
@@ -8,6 +10,14 @@ async function apiGet(endpoint: string) {
   }
 
   return response.json();
+}
+
+export function getApiBaseUrl() {
+  return API_BASE_URL;
+}
+
+export function getBackendHealth() {
+  return apiGet("/");
 }
 
 export function getRainfall() {
@@ -36,6 +46,18 @@ export function getDrainage() {
 
 export function getActionRecommendations() {
   return apiGet("/api/action-recommendations");
+}
+
+export function getCommunityReports() {
+  return apiGet("/api/community-reports");
+}
+
+export function getEvacuationRoutes() {
+  return apiGet("/api/evacuation-routes");
+}
+
+export function getAlerts() {
+  return apiGet("/api/alerts");
 }
 
 export function getDashboard() {
