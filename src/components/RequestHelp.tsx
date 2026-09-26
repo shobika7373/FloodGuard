@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CheckCircle, HeartHandshake } from "lucide-react";
+import { getApiBaseUrl } from "../services/api";
 
 const assistanceTypes = [
   "Medical assistance",
@@ -54,7 +55,7 @@ export default function RequestHelp() {
 
     try {
       const response = await fetch(
-        "http://127.0.0.1:8000/api/assistance-requests",
+        `${getApiBaseUrl()}/api/assistance-requests`,
         {
           method: "POST",
           headers: {

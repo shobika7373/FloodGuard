@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getApiBaseUrl } from "../services/api";
 import {
   Shield,
   AlertTriangle,
@@ -63,7 +64,7 @@ export default function AuthorityDashboard() {
 const [assistanceRequests, setAssistanceRequests] = useState<any[]>([]);
 
 useEffect(() => {
-  fetch("http://127.0.0.1:8000/api/assistance-requests")
+  fetch(`${getApiBaseUrl()}/api/assistance-requests`)
     .then((response) => response.json())
     .then((data) => setAssistanceRequests(data))
     .catch(() => setAssistanceRequests([]));
@@ -373,7 +374,7 @@ const [reviewedSteps, setReviewedSteps] = useState<boolean[]>(
     value={request.status}
     onChange={async (event) => {
       const response = await fetch(
-        `http://127.0.0.1:8000/api/assistance-requests/${request.request_id}/status?status=${encodeURIComponent(event.target.value)}`,
+        `${getApiBaseUrl()}/api/assistance-requests/${request.request_id}/status?status=${encodeURIComponent(event.target.value)}`,
         {
           method: "PATCH",
         }
