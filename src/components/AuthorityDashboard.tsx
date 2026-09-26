@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Shield,
   AlertTriangle,
@@ -58,6 +59,14 @@ const incidents = [
 ];
 
 export default function AuthorityDashboard() {
+  const [assistanceRequests, setAssistanceRequests] = useState<any[]>([]);
+
+useEffect(() => {
+  fetch("http://127.0.0.1:8000/api/assistance-requests")
+    .then((response) => response.json())
+    .then((data) => setAssistanceRequests(data))
+    .catch(() => setAssistanceRequests([]));
+    }, []);
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -293,6 +302,108 @@ export default function AuthorityDashboard() {
           </table>
         </div>
       </div>
+       {/* Citizen Assistance Requests */}
+<div className="rounded-2xl border bg-white p-6 shadow-sm">
+  <div className="flex items-center gap-3">
+    <Users className="text-red-600" size={24} />
+
+    <div>
+      <h2 className="text-xl font-bold text-gray-900">
+        Citizen Assistance Requests
+      </h2>
+      <p className="text-sm text-gray-500">
+        Prototype requests submitted by citizens
+      </p>
+    </div>
+  </div>
+
+  <div className="mt-5 overflow-x-auto">
+    {assistanceRequests.length === 0 ? (
+      <p className="text-sm text-gray-500">
+        No assistance requests submitted yet.
+      </p>
+    ) : (
+      <table className="w-full min-w-[800px] text-left">
+        <thead>
+          <tr className="border-b text-sm text-gray-500">
+            <th className="px-4 py-3">Request ID</th>
+            <th className="px-4 py-3">Assistance</th>
+            <th className="px-4 py-3">Location</th>
+            <th className="px-4 py-3">People</th>
+            <th className="px-4 py-3">Priority</th>
+            <th className="px-4 py-3">Time</th>
+            <th className="px-4 py-3">Status</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {assistanceRequests.map((request) => (
+            <tr key={request.request_id} className="border-b">
+              <td className="px-4 py-3 font-semibold">
+                {request.request_id}
+              </td>
+
+              <td className="px-4 py-3">
+                {request.assistance_type}
+              </td>
+
+              <td className="px-4 py-3">
+                {request.location}
+              </td>
+
+              <td className="px-4 py-3">
+                {request.people_count}
+              </td>
+
+              <td className="px-4 py-3">
+                {request.priority}
+              </td>
+              <td className="px-4 py-3">
+                 {request.created_at || "—"}
+              </td>
+
+              <td className="px-4 py-3">
+  <select
+    value={request.status}
+    onChange={async (event) => {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/assistance-requests/${request.request_id}/status?status=${encodeURIComponent(event.target.value)}`,
+        {
+          method: "PATCH",
+        }
+      );
+
+      if (response.ok) {
+        const updatedRequest = await response.json();
+
+        setAssistanceRequests((currentRequests) =>
+          currentRequests.map((item) =>
+            item.request_id === updatedRequest.request_id
+              ? updatedRequest
+              : item
+          )
+        );
+      }
+    }}
+    className="border border-gray-300 rounded-lg px-2 py-1 text-sm"
+  >
+    <option value="Submitted">Submitted</option>
+    <option value="Under Review">Under Review</option>
+    <option value="Acknowledged">Acknowledged</option>
+    <option value="Resolved">Resolved</option>
+  </select>
+</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </div>
+
+  <p className="mt-4 text-xs text-gray-400">
+    DEMO / SIMULATED DATA — Prototype assistance requests only.
+  </p>
+</div>
 
       {/* Operational Modules */}
       <div className="rounded-2xl border bg-gray-50 p-6">

@@ -4,6 +4,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from .models.flood import FloodRiskInput, FloodRiskResponse
 from .services.risk_engine import calculate_flood_risk
 from .data.demo_scenarios import get_demo_scenario
+from src.backend.models.assistance import AssistanceRequest
+from src.backend.services.assistance_service import (
+    create_assistance_request,
+    get_assistance_requests,
+    update_assistance_status,
+)
 
 
 # ---------------------------------------------------------
@@ -433,3 +439,21 @@ def get_dashboard():
 
         "system_status": "Prototype Operational",
     }
+@app.post("/api/assistance-requests")
+def submit_assistance_request(request: AssistanceRequest):
+    return create_assistance_request(request)
+
+
+@app.get("/api/assistance-requests")
+def list_assistance_requests():
+    return get_assistance_requests()
+
+
+@app.patch("/api/assistance-requests/{request_id}/status")
+def change_assistance_status(request_id: str, status: str):
+    updated_request = update_assistance_status(request_id, status)
+
+    if updated_request is None:
+        return {"error": "Assistance request not found"}
+
+    return updated_request

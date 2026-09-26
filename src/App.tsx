@@ -5,6 +5,7 @@ import {
   BarChart3,
   Bell,
   Brain,
+  HeartHandshake,
   ChevronRight,
   Droplets,
   Gauge,
@@ -23,6 +24,7 @@ import FloodDigitalTwin from "./components/FloodDigitalTwin";
 import WhatIfSimulator from "./components/WhatIfSimulator";
 import AIInsights from "./components/AIInsights";
 import AuthorityDashboard from "./components/AuthorityDashboard";
+import RequestHelp from "./components/RequestHelp";
 import AdminPanel from "./components/AdminPanel";
 import AboutFloodGuard from "./components/AboutFloodGuard";
 import Alerts from "./components/Alerts";
@@ -49,6 +51,7 @@ type Page =
   | "Water Levels"
   | "AI Action Engine"
   | "Community Reports"
+  | "Request Help"
   | "Photo Water-Depth Analysis"
   | "Evacuation Routes"
   | "Alerts"
@@ -80,6 +83,7 @@ const menuGroups = [
     items: [
       { name: "AI Action Engine", icon: Brain },
       { name: "Community Reports", icon: Bell },
+      { name: "Request Help", icon: HeartHandshake },
       { name: "Photo Water-Depth Analysis", icon: Waves },
       { name: "Evacuation Routes", icon: Map },
       { name: "Alerts", icon: Siren },
@@ -456,6 +460,8 @@ export default function App() {
 
       case "AI Insights":
         return <AIInsights />;
+      case "Request Help":
+        return <RequestHelp />;
 
       case "Authority Dashboard":
         return <AuthorityDashboard />;
