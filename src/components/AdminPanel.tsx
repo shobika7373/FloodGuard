@@ -1,6 +1,7 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Settings, CheckCircle, XCircle, CheckCircle2, AlertTriangle, RefreshCw, Database } from "lucide-react";
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+import { getApiBaseUrl } from "../services/api";
+const API_URL = getApiBaseUrl();
 export default function AdminPanel(){
   const [checks,setChecks]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
@@ -9,7 +10,6 @@ export default function AdminPanel(){
   const [lastRefresh,setLastRefresh]=useState<string|null>(null);
   const [dataSources,setDataSources]=useState<any[]>([]);
   const [showConfiguration,setShowConfiguration]=useState(false);
-  const getApiBaseUrl=()=>API_URL;
   useEffect(()=>{
     const run=async()=>{
       const eps=[{name:"Dashboard API",url:`${API_URL}/api/dashboard`},{name:"Rainfall API",url:`${API_URL}/api/rainfall`},{name:"Water Levels API",url:`${API_URL}/api/water-levels`},{name:"Flood Risk API",url:`${API_URL}/api/flood-risk`},{name:"Drainage API",url:`${API_URL}/api/drainage`},{name:"Alerts API",url:`${API_URL}/api/alerts`},{name:"AI Prediction API",url:`${API_URL}/api/ai-prediction`},{name:"Community Reports API",url:`${API_URL}/api/community-reports`}];
@@ -50,3 +50,4 @@ export default function AdminPanel(){
     </div>
   );
 }
+
