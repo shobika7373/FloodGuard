@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Waves,
   MapPin,
@@ -15,6 +16,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { getWaterLevels } from "../services/api";
 
 const waterLevelTrend = [
   { time: "12 PM", level: 1.02 },
@@ -27,61 +29,127 @@ const waterLevelTrend = [
   { time: "7 PM", level: 1.92 },
 ];
 
-const stations = [
+const demoStations = [
   {
     id: "WL-01",
-    location: "Adyar River",
-    current: "1.80 m",
-    safe: "1.20 m",
-    warning: "1.60 m",
-    critical: "2.00 m",
-    rate: "+12 cm/hr",
-    status: "Warning",
-  },
-  {
-    id: "WL-02",
-    location: "Cooum River",
+    location: "Adyar",
     current: "1.42 m",
     safe: "1.20 m",
     warning: "1.60 m",
     critical: "2.00 m",
+    rate: "+12 cm/hr",
+    status: "Rising",
+  },
+  {
+    id: "WL-02",
+    location: "Saidapet",
+    current: "1.18 m",
+    safe: "1.20 m",
+    warning: "1.60 m",
+    critical: "2.00 m",
     rate: "+7 cm/hr",
-    status: "Normal",
+    status: "Rising",
   },
   {
     id: "WL-03",
     location: "Velachery",
-    current: "1.67 m",
+    current: "0.96 m",
     safe: "1.10 m",
     warning: "1.50 m",
     critical: "1.90 m",
-    rate: "+10 cm/hr",
-    status: "Warning",
+    rate: "Stable",
+    status: "Stable",
   },
   {
     id: "WL-04",
-    location: "Saidapet",
-    current: "1.91 m",
+    location: "T. Nagar",
+    current: "0.84 m",
     safe: "1.20 m",
     warning: "1.60 m",
     critical: "2.00 m",
-    rate: "+15 cm/hr",
-    status: "Critical",
+    rate: "+7 cm/hr",
+    status: "Rising",
   },
 ];
 
 export default function WaterLevels() {
-  const warningCount = stations.filter(
-    (station) => station.status === "Warning"
+  const [stations, setStations] = useState(demoStations);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    getWaterLevels()
+      .then((response) => {
+        const backendData = response.data || [];
+
+        const mappedStations = backendData.map(
+          (
+            item: {
+              area: string;
+              level: number;
+              trend: string;
+            },
+            index: number
+          ) => ({
+            id: `WL-0${index + 1}`,
+            location: item.area,
+            current: `${item.level} m`,
+            safe: "Demo",
+            warning: "Demo",
+            critical: "Demo",
+            rate: item.trend,
+            status: item.trend,
+          })
+        );
+
+        setStations(mappedStations);
+        setError("");
+      })
+      .catch((error) => {
+        console.error("Water Levels API error:", error);
+        setError("Backend unavailable — showing DEMO / SIMULATED DATA.");
+        setStations(demoStations);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[300px] items-center justify-center">
+        <div className="text-sm font-medium text-slate-600">
+          Loading water level data...
+        </div>
+      </div>
+    );
+  }
+
+  const risingCount = stations.filter(
+    (station) => station.status === "Rising"
   ).length;
 
-  const criticalCount = stations.filter(
-    (station) => station.status === "Critical"
+  const stableCount = stations.filter(
+    (station) => station.status === "Stable"
   ).length;
+
+  const highestLevel =
+    stations.length > 0
+      ? Math.max(
+          ...stations.map((station) =>
+            parseFloat(station.current.replace(" m", ""))
+          )
+        )
+      : 0;
+
+  const highestStation =
+    stations.find(
+      (station) =>
+        parseFloat(station.current.replace(" m", "")) === highestLevel
+    )?.location || "N/A";
 
   return (
     <div className="space-y-6">
-
       {/* Header */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
@@ -104,18 +172,24 @@ export default function WaterLevels() {
         </div>
       </div>
 
+      {/* Error / Fallback Message */}
+      {error && (
+        <div className="rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-medium text-orange-700">
+          {error}
+        </div>
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-500">
-                Current Water Level
+                Highest Water Level
               </p>
 
               <p className="mt-2 text-2xl font-bold text-slate-900">
-                1.80 m
+                {highestLevel.toFixed(2)} m
               </p>
             </div>
 
@@ -125,7 +199,7 @@ export default function WaterLevels() {
           </div>
 
           <p className="mt-3 text-xs text-slate-500">
-            Highest monitored simulated reading
+            Highest monitored simulated reading: {highestStation}
           </p>
         </div>
 
@@ -133,11 +207,11 @@ export default function WaterLevels() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-500">
-                Rising Rate
+                Rising Stations
               </p>
 
               <p className="mt-2 text-2xl font-bold text-orange-600">
-                +12 cm/hr
+                {risingCount}
               </p>
             </div>
 
@@ -147,7 +221,7 @@ export default function WaterLevels() {
           </div>
 
           <p className="mt-3 text-xs text-slate-500">
-            Simulated rate of increase
+            Stations showing a rising simulated trend
           </p>
         </div>
 
@@ -155,21 +229,21 @@ export default function WaterLevels() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-500">
-                Warning Stations
+                Stable Stations
               </p>
 
-              <p className="mt-2 text-2xl font-bold text-orange-600">
-                {warningCount}
+              <p className="mt-2 text-2xl font-bold text-green-600">
+                {stableCount}
               </p>
             </div>
 
-            <div className="rounded-lg bg-orange-50 p-3">
-              <AlertTriangle className="h-6 w-6 text-orange-600" />
+            <div className="rounded-lg bg-green-50 p-3">
+              <CheckCircle className="h-6 w-6 text-green-600" />
             </div>
           </div>
 
           <p className="mt-3 text-xs text-slate-500">
-            Above simulated warning threshold
+            Stations with stable simulated trends
           </p>
         </div>
 
@@ -177,29 +251,27 @@ export default function WaterLevels() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-500">
-                Critical Stations
+                Monitored Stations
               </p>
 
-              <p className="mt-2 text-2xl font-bold text-red-600">
-                {criticalCount}
+              <p className="mt-2 text-2xl font-bold text-blue-600">
+                {stations.length}
               </p>
             </div>
 
-            <div className="rounded-lg bg-red-50 p-3">
-              <Gauge className="h-6 w-6 text-red-600" />
+            <div className="rounded-lg bg-blue-50 p-3">
+              <Gauge className="h-6 w-6 text-blue-600" />
             </div>
           </div>
 
-          <p className="mt-3 text-xs text-red-600">
-            Requires immediate monitoring
+          <p className="mt-3 text-xs text-slate-500">
+            Backend-connected demonstration stations
           </p>
         </div>
-
       </div>
 
       {/* Main Chart */}
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-
         <div className="mb-5">
           <h2 className="text-lg font-semibold text-slate-900">
             Water Level Trend
@@ -213,7 +285,6 @@ export default function WaterLevels() {
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={waterLevelTrend}>
-
               <CartesianGrid strokeDasharray="3 3" />
 
               <XAxis dataKey="time" />
@@ -238,62 +309,51 @@ export default function WaterLevels() {
                 strokeWidth={3}
                 dot={{ r: 4 }}
               />
-
             </LineChart>
           </ResponsiveContainer>
         </div>
-
       </div>
 
       {/* Current Alert */}
       <div className="rounded-xl border border-orange-200 bg-orange-50 p-5">
-
         <div className="flex gap-4">
-
           <div className="rounded-lg bg-orange-100 p-3">
             <AlertTriangle className="h-6 w-6 text-orange-600" />
           </div>
 
           <div>
             <h2 className="font-semibold text-orange-900">
-              Water Level Rising
+              Water Level Trend
             </h2>
 
             <p className="mt-1 text-sm text-orange-800">
-              Simulated water-level readings show an increasing trend.
-              Continued rainfall and drainage stress may increase flood
-              risk in vulnerable low-lying areas.
+              Backend-connected simulated readings are being used to
+              monitor rising and stable water-level trends.
             </p>
 
             <p className="mt-2 text-xs font-medium text-orange-700">
               Prototype observation — not a real-time emergency warning.
             </p>
           </div>
-
         </div>
-
       </div>
 
       {/* Station Table */}
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-
         <div className="border-b border-slate-200 p-5">
           <h2 className="text-lg font-semibold text-slate-900">
             Water Level Stations
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Simulated monitoring stations and flood thresholds.
+            Backend-connected simulated monitoring stations.
           </p>
         </div>
 
         <div className="overflow-x-auto">
-
           <table className="w-full min-w-[950px]">
-
             <thead className="bg-slate-50">
               <tr>
-
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
                   Station
                 </th>
@@ -325,19 +385,15 @@ export default function WaterLevels() {
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">
                   Status
                 </th>
-
               </tr>
             </thead>
 
             <tbody className="divide-y divide-slate-100">
-
               {stations.map((station) => (
-
                 <tr
                   key={station.id}
                   className="transition hover:bg-slate-50"
                 >
-
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-2">
                       <Gauge className="h-4 w-4 text-blue-600" />
@@ -359,15 +415,15 @@ export default function WaterLevels() {
                     {station.current}
                   </td>
 
-                  <td className="px-5 py-4 text-sm text-slate-600">
+                  <td className="px-5 py-4 text-sm text-slate-500">
                     {station.safe}
                   </td>
 
-                  <td className="px-5 py-4 text-sm text-orange-600">
+                  <td className="px-5 py-4 text-sm text-slate-500">
                     {station.warning}
                   </td>
 
-                  <td className="px-5 py-4 text-sm text-red-600">
+                  <td className="px-5 py-4 text-sm text-slate-500">
                     {station.critical}
                   </td>
 
@@ -376,46 +432,30 @@ export default function WaterLevels() {
                   </td>
 
                   <td className="px-5 py-4">
-
-                    {station.status === "Normal" && (
+                    {station.status === "Stable" && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
                         <CheckCircle className="h-3 w-3" />
-                        Normal
+                        Stable
                       </span>
                     )}
 
-                    {station.status === "Warning" && (
+                    {station.status === "Rising" && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
                         <AlertTriangle className="h-3 w-3" />
-                        Warning
+                        Rising
                       </span>
                     )}
-
-                    {station.status === "Critical" && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
-                        <AlertTriangle className="h-3 w-3" />
-                        Critical
-                      </span>
-                    )}
-
                   </td>
-
                 </tr>
-
               ))}
-
             </tbody>
-
           </table>
-
         </div>
       </div>
 
       {/* FloodGuard Logic */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-
           <h2 className="text-lg font-semibold text-slate-900">
             Water-Level Risk Logic
           </h2>
@@ -426,19 +466,16 @@ export default function WaterLevels() {
           </p>
 
           <div className="mt-5 space-y-3">
-
             {[
               "Monitor current water level",
               "Compare against warning and critical thresholds",
               "Calculate rate of water-level rise",
               "Combine with rainfall and drainage conditions",
             ].map((item, index) => (
-
               <div
                 key={item}
                 className="flex items-center gap-3 rounded-lg bg-slate-50 p-3"
               >
-
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
                   {index + 1}
                 </div>
@@ -446,17 +483,12 @@ export default function WaterLevels() {
                 <span className="text-sm text-slate-700">
                   {item}
                 </span>
-
               </div>
-
             ))}
-
           </div>
-
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-
           <h2 className="text-lg font-semibold text-slate-900">
             Backend / IoT Ready
           </h2>
@@ -467,23 +499,19 @@ export default function WaterLevels() {
           </p>
 
           <div className="mt-5 rounded-lg border border-blue-200 bg-blue-50 p-4">
-
             <p className="text-sm font-semibold text-blue-900">
-              Example integration
+              Current integration
             </p>
 
             <div className="mt-3 space-y-2 text-sm text-blue-800">
-              <p>Sensor → Water Level Reading</p>
-              <p>Gateway → Data Transmission</p>
-              <p>Backend → Data Processing</p>
-              <p>AI Engine → Flood Risk</p>
-              <p>FloodGuard → Alert / Action</p>
+              <p>Backend API → Water Level Reading</p>
+              <p>Backend API → Rising / Stable Trend</p>
+              <p>Frontend → Water Level Display</p>
+              <p>Frontend → Monitoring Status</p>
+              <p>FloodGuard → Prototype Visualization</p>
             </div>
-
           </div>
-
         </div>
-
       </div>
 
       {/* Prototype Notice */}
@@ -493,7 +521,6 @@ export default function WaterLevels() {
         data. They are not live sensor readings or official flood
         warnings.
       </div>
-
     </div>
   );
 }

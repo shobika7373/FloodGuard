@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   AlertTriangle,
   Bell,
@@ -6,6 +7,7 @@ import {
   MapPin,
   ShieldAlert,
   Siren,
+  X,
 } from "lucide-react";
 
 const alerts = [
@@ -77,6 +79,8 @@ function severityStyle(severity: string) {
 }
 
 export default function Alerts() {
+  const [showResponse, setShowResponse] = useState(false);
+
   const activeAlerts = alerts.filter(
     (alert) => alert.status === "Active"
   ).length;
@@ -84,6 +88,10 @@ export default function Alerts() {
   const criticalAlerts = alerts.filter(
     (alert) => alert.severity === "Critical"
   ).length;
+
+  const criticalAlert = alerts.find(
+    (alert) => alert.severity === "Critical"
+  );
 
   return (
     <div className="space-y-6">
@@ -175,10 +183,124 @@ export default function Alerts() {
           </div>
         </div>
 
-        <button className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">
+        <button
+          onClick={() => setShowResponse(true)}
+          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+        >
           Review Response
         </button>
       </div>
+
+      {/* Response Review */}
+      {showResponse && criticalAlert && (
+        <div className="rounded-xl border border-red-200 bg-white p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">
+                Critical Risk Response Review
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Prototype response options for the simulated critical alert.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowResponse(false)}
+              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+              aria-label="Close response review"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            <div className="rounded-lg bg-red-50 p-4">
+              <p className="text-xs uppercase tracking-wide text-red-600">
+                Severity
+              </p>
+              <p className="mt-1 text-xl font-bold text-red-700">
+                {criticalAlert.severity}
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-slate-50 p-4">
+              <p className="text-xs uppercase tracking-wide text-slate-500">
+                Location
+              </p>
+              <p className="mt-1 text-xl font-bold text-slate-900">
+                {criticalAlert.location}
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-slate-50 p-4">
+              <p className="text-xs uppercase tracking-wide text-slate-500">
+                Alert ID
+              </p>
+              <p className="mt-1 text-xl font-bold text-slate-900">
+                {criticalAlert.id}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="rounded-lg bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Why was this alert generated?
+              </p>
+
+              <p className="mt-2 text-sm text-slate-700">
+                {criticalAlert.reason}
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Recommended Prototype Action
+              </p>
+
+              <p className="mt-2 text-sm text-slate-700">
+                {criticalAlert.action}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <h3 className="font-semibold text-slate-900">
+              Response Review Checklist
+            </h3>
+
+            <div className="mt-3 space-y-3">
+              {[
+                "Review the affected roads and vulnerable drainage locations.",
+                "Review prototype evacuation and public-warning workflows.",
+                "Prioritize inspection of critical drainage points.",
+                "Continue monitoring rainfall and water-level conditions.",
+              ].map((item, index) => (
+                <div
+                  key={item}
+                  className="flex gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4"
+                >
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 text-xs font-bold text-red-700">
+                    {index + 1}
+                  </div>
+
+                  <p className="text-sm text-slate-700">{item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm text-amber-800">
+              <strong>Prototype Notice:</strong> These are simulated response
+              suggestions for demonstration. They do not dispatch rescue
+              teams, issue real emergency alerts, or replace instructions from
+              authorized emergency authorities.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Alert list */}
       <div className="rounded-xl border border-slate-200 bg-white">
