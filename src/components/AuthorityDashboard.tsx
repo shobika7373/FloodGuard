@@ -60,28 +60,71 @@ const incidents = [
   },
 ];
 
+/* ============================================================
+   AREA BUTTON DATA
+   These are shown ONLY after clicking the Area button.
+============================================================ */
+const areas = [
+  "T. Nagar",
+  "Velachery",
+  "Adyar",
+  "Saidapet",
+  "Anna Nagar",
+  "Guindy",
+  "Kodambakkam",
+  "Nungambakkam",
+];
+
 export default function AuthorityDashboard() {
-const [assistanceRequests, setAssistanceRequests] = useState<any[]>([]);
+  const [assistanceRequests, setAssistanceRequests] = useState<any[]>([]);
 
-useEffect(() => {
-  fetch(`${getApiBaseUrl()}/api/assistance-requests`)
-    .then((response) => response.json())
-    .then((data) => setAssistanceRequests(data))
-    .catch(() => setAssistanceRequests([]));
-}, []);
+  /* ============================================================
+     EXISTING ASSISTANCE REQUEST FUNCTIONALITY
+  ============================================================ */
+  useEffect(() => {
+    fetch(`${getApiBaseUrl()}/api/assistance-requests`)
+      .then((response) => response.json())
+      .then((data) => setAssistanceRequests(data))
+      .catch(() => setAssistanceRequests([]));
+  }, []);
 
-const [showResponsePlan, setShowResponsePlan] = useState(false);
-const [reviewedSteps, setReviewedSteps] = useState<boolean[]>(
-  Array(5).fill(false)
-);
+  /* ============================================================
+     EXISTING RESPONSE PLAN FUNCTIONALITY
+  ============================================================ */
+  const [showResponsePlan, setShowResponsePlan] = useState(false);
+
+  const [reviewedSteps, setReviewedSteps] = useState<boolean[]>(
+    Array(5).fill(false)
+  );
+
+  /* ============================================================
+     NEW AREA BUTTON FUNCTIONALITY
+  ============================================================ */
+  const [showAreas, setShowAreas] = useState(false);
+  const [selectedArea, setSelectedArea] = useState<string | null>(null);
+
+  const handleAreaClick = (area: string) => {
+    setSelectedArea(area);
+    setShowAreas(false);
+  };
+
+  const clearSelectedArea = () => {
+    setSelectedArea(null);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+
+      {/* ========================================================
+          EXISTING HEADER
+      ========================================================= */}
       <div className="rounded-2xl bg-gradient-to-r from-slate-800 to-slate-700 p-6 text-white shadow-lg">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
           <div>
             <div className="mb-2 flex items-center gap-2">
               <Shield size={24} />
+
               <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
                 DEMO / SIMULATED DATA
               </span>
@@ -98,84 +141,293 @@ const [reviewedSteps, setReviewedSteps] = useState<boolean[]>(
           </div>
 
           <div className="rounded-xl bg-white/10 px-5 py-4 text-center">
-            <p className="text-xs text-slate-300">System Status</p>
+            <p className="text-xs text-slate-300">
+              System Status
+            </p>
+
             <div className="mt-1 flex items-center justify-center gap-2">
               <span className="h-3 w-3 rounded-full bg-green-400" />
-              <span className="font-semibold">Operational</span>
+              <span className="font-semibold">
+                Operational
+              </span>
             </div>
           </div>
+
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* ========================================================
+          NEW AREA BUTTON SECTION
+          ONLY THIS SECTION IS NEW
+      ========================================================= */}
+      <div className="relative rounded-2xl border bg-white p-5 shadow-sm">
+
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">
+              Area
+            </h2>
+
+            <p className="text-sm text-gray-500">
+              Select an area to view area-specific information
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowAreas((current) => !current)}
+            className="flex min-w-[220px] items-center justify-between gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 text-left shadow-sm transition hover:border-blue-500 hover:bg-blue-50"
+          >
+            <div className="flex items-center gap-3">
+
+              <div className="rounded-lg bg-blue-100 p-2">
+                <MapPin
+                  size={18}
+                  className="text-blue-600"
+                />
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500">
+                  SELECTED AREA
+                </p>
+
+                <p className="text-sm font-semibold text-gray-900">
+                  {selectedArea || "Select Area"}
+                </p>
+              </div>
+
+            </div>
+
+            <span className="text-gray-500">
+              {showAreas ? "▲" : "▼"}
+            </span>
+          </button>
+
+        </div>
+
+        {/* ======================================================
+            AREA BUTTONS
+            NOT A SELECT/DROPDOWN.
+            THEY APPEAR ONLY AFTER CLICKING AREA.
+        ======================================================= */}
+        {showAreas && (
+          <div className="mt-5 border-t pt-5">
+
+            <p className="mb-3 text-sm font-semibold text-gray-700">
+              Select an area
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+
+              {areas.map((area) => (
+                <button
+                  key={area}
+                  type="button"
+                  onClick={() => handleAreaClick(area)}
+                  className={`rounded-lg border px-4 py-2.5 text-sm font-medium transition ${
+                    selectedArea === area
+                      ? "border-blue-600 bg-blue-600 text-white"
+                      : "border-gray-300 bg-white text-gray-700 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <MapPin size={15} />
+                    {area}
+                  </span>
+                </button>
+              ))}
+
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================
+            SELECTED AREA
+            ONLY SHOWN AFTER USER SELECTS AN AREA.
+        ======================================================= */}
+        {selectedArea && (
+          <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4">
+
+            <div className="flex items-center justify-between gap-3">
+
+              <div className="flex items-center gap-3">
+
+                <div className="rounded-lg bg-blue-100 p-2">
+                  <MapPin
+                    size={20}
+                    className="text-blue-600"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium uppercase text-blue-600">
+                    Selected Area
+                  </p>
+
+                  <p className="text-lg font-bold text-gray-900">
+                    {selectedArea}
+                  </p>
+                </div>
+
+              </div>
+
+              <button
+                type="button"
+                onClick={clearSelectedArea}
+                className="rounded-lg p-2 text-gray-500 transition hover:bg-white hover:text-red-600"
+                title="Clear selected area"
+              >
+                <X size={18} />
+              </button>
+
+            </div>
+
+          </div>
+        )}
+      </div>
+
+      {/* ========================================================
+          EXISTING KPI CARDS — UNCHANGED
+      ========================================================= */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
         <div className="rounded-xl border bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">Critical Zones</p>
-            <AlertTriangle className="text-red-600" size={22} />
+            <p className="text-sm text-gray-500">
+              Critical Zones
+            </p>
+
+            <AlertTriangle
+              className="text-red-600"
+              size={22}
+            />
           </div>
-          <p className="mt-2 text-3xl font-bold">3</p>
-          <p className="mt-1 text-xs text-red-600">Immediate attention</p>
+
+          <p className="mt-2 text-3xl font-bold">
+            3
+          </p>
+
+          <p className="mt-1 text-xs text-red-600">
+            Immediate attention
+          </p>
         </div>
 
         <div className="rounded-xl border bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">High-Risk Areas</p>
-            <MapPin className="text-orange-600" size={22} />
+            <p className="text-sm text-gray-500">
+              High-Risk Areas
+            </p>
+
+            <MapPin
+              className="text-orange-600"
+              size={22}
+            />
           </div>
-          <p className="mt-2 text-3xl font-bold">8</p>
-          <p className="mt-1 text-xs text-orange-600">Under monitoring</p>
+
+          <p className="mt-2 text-3xl font-bold">
+            8
+          </p>
+
+          <p className="mt-1 text-xs text-orange-600">
+            Under monitoring
+          </p>
         </div>
 
         <div className="rounded-xl border bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">People at Risk</p>
-            <Users className="text-purple-600" size={22} />
+            <p className="text-sm text-gray-500">
+              People at Risk
+            </p>
+
+            <Users
+              className="text-purple-600"
+              size={22}
+            />
           </div>
-          <p className="mt-2 text-3xl font-bold">24.6K</p>
-          <p className="mt-1 text-xs text-purple-600">Simulated estimate</p>
+
+          <p className="mt-2 text-3xl font-bold">
+            24.6K
+          </p>
+
+          <p className="mt-1 text-xs text-purple-600">
+            Simulated estimate
+          </p>
         </div>
 
         <div className="rounded-xl border bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">Water Level</p>
-            <Droplets className="text-blue-600" size={22} />
+            <p className="text-sm text-gray-500">
+              Water Level
+            </p>
+
+            <Droplets
+              className="text-blue-600"
+              size={22}
+            />
           </div>
-          <p className="mt-2 text-3xl font-bold">1.42 m</p>
-          <p className="mt-1 text-xs text-blue-600">Rising trend</p>
+
+          <p className="mt-2 text-3xl font-bold">
+            1.42 m
+          </p>
+
+          <p className="mt-1 text-xs text-blue-600">
+            Rising trend
+          </p>
         </div>
+
       </div>
 
-      {/* Main Grid */}
+      {/* ========================================================
+          EXISTING MAIN GRID — UNCHANGED
+      ========================================================= */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
         {/* Risk Trend */}
         <div className="rounded-2xl border bg-white p-6 shadow-sm">
+
           <div className="mb-5 flex items-center justify-between">
+
             <div>
               <h2 className="text-xl font-bold text-gray-900">
                 Flood Risk Trend
               </h2>
+
               <p className="text-sm text-gray-500">
                 Simulated city risk progression
               </p>
             </div>
 
-            <Activity className="text-blue-600" size={22} />
+            <Activity
+              className="text-blue-600"
+              size={22}
+            />
+
           </div>
 
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+            >
               <LineChart data={riskTrend}>
+
                 <CartesianGrid strokeDasharray="3 3" />
+
                 <XAxis dataKey="time" />
+
                 <YAxis domain={[0, 100]} />
+
                 <Tooltip />
+
                 <Line
                   type="monotone"
                   dataKey="risk"
                   strokeWidth={3}
                   dot={{ r: 4 }}
                 />
+
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -183,7 +435,9 @@ const [reviewedSteps, setReviewedSteps] = useState<boolean[]>(
 
         {/* Critical Decision */}
         <div className="rounded-2xl border border-red-200 bg-red-50 p-6 shadow-sm">
+
           <div className="flex items-center gap-3">
+
             <div className="rounded-xl bg-red-100 p-3 text-red-700">
               <Siren size={25} />
             </div>
@@ -192,16 +446,23 @@ const [reviewedSteps, setReviewedSteps] = useState<boolean[]>(
               <h2 className="text-xl font-bold text-red-900">
                 Priority Response
               </h2>
+
               <p className="text-sm text-red-700">
                 AI-assisted prototype recommendation
               </p>
             </div>
+
           </div>
 
           <div className="mt-6 rounded-xl bg-white p-5">
+
             <div className="flex items-center justify-between">
+
               <div>
-                <p className="text-sm text-gray-500">Priority Area</p>
+                <p className="text-sm text-gray-500">
+                  Priority Area
+                </p>
+
                 <p className="text-2xl font-bold text-gray-900">
                   T. Nagar
                 </p>
@@ -210,9 +471,11 @@ const [reviewedSteps, setReviewedSteps] = useState<boolean[]>(
               <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-bold text-red-700">
                 CRITICAL
               </span>
+
             </div>
 
             <div className="mt-5 space-y-3">
+
               {[
                 "Deploy field response team",
                 "Monitor drainage blockage",
@@ -223,37 +486,57 @@ const [reviewedSteps, setReviewedSteps] = useState<boolean[]>(
                   key={action}
                   className="flex items-center gap-3 text-sm text-gray-700"
                 >
-                  <CheckCircle size={17} className="text-red-600" />
+                  <CheckCircle
+                    size={17}
+                    className="text-red-600"
+                  />
+
                   {action}
                 </div>
               ))}
+
             </div>
 
-            <button onClick={()=> setShowResponsePlan(true)} className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700">
+            <button
+              onClick={() => setShowResponsePlan(true)}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700"
+            >
               Review Response Plan
               <ArrowUpRight size={17} />
             </button>
+
           </div>
         </div>
       </div>
 
-      {/* Incident Table */}
+      {/* ========================================================
+          EXISTING INCIDENT TABLE — UNCHANGED
+      ========================================================= */}
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
+
         <div className="mb-5 flex items-center justify-between">
+
           <div>
             <h2 className="text-xl font-bold text-gray-900">
               Active Flood Incidents
             </h2>
+
             <p className="text-sm text-gray-500">
               Prototype incident monitoring view
             </p>
           </div>
 
-          <Clock className="text-gray-500" size={22} />
+          <Clock
+            className="text-gray-500"
+            size={22}
+          />
+
         </div>
 
         <div className="overflow-x-auto">
+
           <table className="w-full min-w-[700px] text-left">
+
             <thead>
               <tr className="border-b text-sm text-gray-500">
                 <th className="px-4 py-3">Area</th>
@@ -264,16 +547,19 @@ const [reviewedSteps, setReviewedSteps] = useState<boolean[]>(
             </thead>
 
             <tbody>
+
               {incidents.map((incident) => (
                 <tr
                   key={incident.area}
                   className="border-b last:border-0"
                 >
+
                   <td className="px-4 py-4 font-semibold text-gray-900">
                     {incident.area}
                   </td>
 
                   <td className="px-4 py-4">
+
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-semibold ${
                         incident.risk === "Critical"
@@ -285,6 +571,7 @@ const [reviewedSteps, setReviewedSteps] = useState<boolean[]>(
                     >
                       {incident.risk}
                     </span>
+
                   </td>
 
                   <td className="px-4 py-4 text-sm text-gray-600">
@@ -292,7 +579,9 @@ const [reviewedSteps, setReviewedSteps] = useState<boolean[]>(
                   </td>
 
                   <td className="px-4 py-4">
+
                     <span className="flex items-center gap-2 text-sm">
+
                       <span
                         className={`h-2.5 w-2.5 rounded-full ${
                           incident.status === "Action Required"
@@ -300,153 +589,235 @@ const [reviewedSteps, setReviewedSteps] = useState<boolean[]>(
                             : "bg-yellow-500"
                         }`}
                       />
+
                       {incident.status}
+
                     </span>
+
                   </td>
+
                 </tr>
               ))}
+
             </tbody>
           </table>
+
         </div>
       </div>
-       {/* Citizen Assistance Requests */}
-<div className="rounded-2xl border bg-white p-6 shadow-sm">
-  <div className="flex items-center gap-3">
-    <Users className="text-red-600" size={24} />
 
-    <div>
-      <h2 className="text-xl font-bold text-gray-900">
-        Citizen Assistance Requests
-      </h2>
-      <p className="text-sm text-gray-500">
-        Prototype requests submitted by citizens
-      </p>
-    </div>
-  </div>
+      {/* ========================================================
+          EXISTING CITIZEN ASSISTANCE REQUESTS — UNCHANGED
+      ========================================================= */}
+      <div className="rounded-2xl border bg-white p-6 shadow-sm">
 
-  <div className="mt-5 overflow-x-auto">
-    {assistanceRequests.length === 0 ? (
-      <p className="text-sm text-gray-500">
-        No assistance requests submitted yet.
-      </p>
-    ) : (
-      <table className="w-full min-w-[800px] text-left">
-        <thead>
-          <tr className="border-b text-sm text-gray-500">
-            <th className="px-4 py-3">Request ID</th>
-            <th className="px-4 py-3">Assistance</th>
-            <th className="px-4 py-3">Location</th>
-            <th className="px-4 py-3">People</th>
-            <th className="px-4 py-3">Priority</th>
-            <th className="px-4 py-3">Time</th>
-            <th className="px-4 py-3">Status</th>
-          </tr>
-        </thead>
+        <div className="flex items-center gap-3">
 
-        <tbody>
-          {assistanceRequests.map((request) => (
-            <tr key={request.request_id} className="border-b">
-              <td className="px-4 py-3 font-semibold">
-                {request.request_id}
-              </td>
+          <Users
+            className="text-red-600"
+            size={24}
+          />
 
-              <td className="px-4 py-3">
-                {request.assistance_type}
-              </td>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">
+              Citizen Assistance Requests
+            </h2>
 
-              <td className="px-4 py-3">
-                {request.location}
-              </td>
+            <p className="text-sm text-gray-500">
+              Prototype requests submitted by citizens
+            </p>
+          </div>
 
-              <td className="px-4 py-3">
-                {request.people_count}
-              </td>
+        </div>
 
-              <td className="px-4 py-3">
-                {request.priority}
-              </td>
-              <td className="px-4 py-3">
-                 {request.created_at || "—"}
-              </td>
+        <div className="mt-5 overflow-x-auto">
 
-              <td className="px-4 py-3">
-  <select
-    value={request.status}
-    onChange={async (event) => {
-      const response = await fetch(
-        `${getApiBaseUrl()}/api/assistance-requests/${request.request_id}/status?status=${encodeURIComponent(event.target.value)}`,
-        {
-          method: "PATCH",
-        }
-      );
+          {assistanceRequests.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No assistance requests submitted yet.
+            </p>
+          ) : (
+            <table className="w-full min-w-[800px] text-left">
 
-      if (response.ok) {
-        const updatedRequest = await response.json();
+              <thead>
+                <tr className="border-b text-sm text-gray-500">
+                  <th className="px-4 py-3">Request ID</th>
+                  <th className="px-4 py-3">Assistance</th>
+                  <th className="px-4 py-3">Location</th>
+                  <th className="px-4 py-3">People</th>
+                  <th className="px-4 py-3">Priority</th>
+                  <th className="px-4 py-3">Time</th>
+                  <th className="px-4 py-3">Status</th>
+                </tr>
+              </thead>
 
-        setAssistanceRequests((currentRequests) =>
-          currentRequests.map((item) =>
-            item.request_id === updatedRequest.request_id
-              ? updatedRequest
-              : item
-          )
-        );
-      }
-    }}
-    className="border border-gray-300 rounded-lg px-2 py-1 text-sm"
-  >
-    <option value="Submitted">Submitted</option>
-    <option value="Under Review">Under Review</option>
-    <option value="Acknowledged">Acknowledged</option>
-    <option value="Resolved">Resolved</option>
-  </select>
-</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    )}
-  </div>
+              <tbody>
 
-  <p className="mt-4 text-xs text-gray-400">
-    DEMO / SIMULATED DATA — Prototype assistance requests only.
-  </p>
-</div>
+                {assistanceRequests.map((request) => (
+                  <tr
+                    key={request.request_id}
+                    className="border-b"
+                  >
 
-      {/* Operational Modules */}
+                    <td className="px-4 py-3 font-semibold">
+                      {request.request_id}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {request.assistance_type}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {request.location}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {request.people_count}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {request.priority}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {request.created_at || "—"}
+                    </td>
+
+                    <td className="px-4 py-3">
+
+                      <select
+                        value={request.status}
+                        onChange={async (event) => {
+
+                          const response = await fetch(
+                            `${getApiBaseUrl()}/api/assistance-requests/${request.request_id}/status?status=${encodeURIComponent(
+                              event.target.value
+                            )}`,
+                            {
+                              method: "PATCH",
+                            }
+                          );
+
+                          if (response.ok) {
+
+                            const updatedRequest =
+                              await response.json();
+
+                            setAssistanceRequests(
+                              (currentRequests) =>
+                                currentRequests.map((item) =>
+                                  item.request_id ===
+                                  updatedRequest.request_id
+                                    ? updatedRequest
+                                    : item
+                                )
+                            );
+                          }
+                        }}
+                        className="rounded-lg border border-gray-300 px-2 py-1 text-sm"
+                      >
+                        <option value="Submitted">
+                          Submitted
+                        </option>
+
+                        <option value="Under Review">
+                          Under Review
+                        </option>
+
+                        <option value="Acknowledged">
+                          Acknowledged
+                        </option>
+
+                        <option value="Resolved">
+                          Resolved
+                        </option>
+
+                      </select>
+
+                    </td>
+
+                  </tr>
+                ))}
+
+              </tbody>
+            </table>
+          )}
+
+        </div>
+
+        <p className="mt-4 text-xs text-gray-400">
+          DEMO / SIMULATED DATA — Prototype assistance requests only.
+        </p>
+
+      </div>
+
+      {/* ========================================================
+          EXISTING OPERATIONAL MODULES — UNCHANGED
+      ========================================================= */}
       <div className="rounded-2xl border bg-gray-50 p-6">
+
         <h2 className="text-xl font-bold text-gray-900">
           Authority Operations
         </h2>
 
         <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+
           <div className="rounded-xl bg-white p-4">
-            <CheckCircle className="text-green-600" size={22} />
-            <p className="mt-3 font-semibold">Monitoring</p>
+            <CheckCircle
+              className="text-green-600"
+              size={22}
+            />
+
+            <p className="mt-3 font-semibold">
+              Monitoring
+            </p>
+
             <p className="mt-1 text-sm text-gray-500">
               Flood-risk zones continuously reviewed.
             </p>
           </div>
 
           <div className="rounded-xl bg-white p-4">
-            <Activity className="text-blue-600" size={22} />
-            <p className="mt-3 font-semibold">Decision Support</p>
+
+            <Activity
+              className="text-blue-600"
+              size={22}
+            />
+
+            <p className="mt-3 font-semibold">
+              Decision Support
+            </p>
+
             <p className="mt-1 text-sm text-gray-500">
               AI-assisted prioritization of response actions.
             </p>
+
           </div>
 
           <div className="rounded-xl bg-white p-4">
-            <Shield className="text-purple-600" size={22} />
-            <p className="mt-3 font-semibold">Coordination</p>
+
+            <Shield
+              className="text-purple-600"
+              size={22}
+            />
+
+            <p className="mt-3 font-semibold">
+              Coordination
+            </p>
+
             <p className="mt-1 text-sm text-gray-500">
               Designed for future integration with authorized agencies.
             </p>
+
           </div>
+
         </div>
       </div>
 
-      {/* Disclaimer */}
+      {/* ========================================================
+          EXISTING DISCLAIMER — UNCHANGED
+      ========================================================= */}
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+
         <p className="text-sm font-semibold text-amber-900">
           Prototype Notice
         </p>
@@ -458,48 +829,122 @@ const [reviewedSteps, setReviewedSteps] = useState<boolean[]>(
           Real deployment would require verified data sources, backend
           services, authorized agencies and operational validation.
         </p>
+
       </div>
-          
+
+      {/* ========================================================
+          EXISTING RESPONSE PLAN MODAL — UNCHANGED
+      ========================================================= */}
       {showResponsePlan && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-    <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="mb-2 inline-flex rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-xs font-semibold text-yellow-300">
-            DEMO / SIMULATED DATA
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+
+            <div className="flex items-start justify-between gap-4">
+
+              <div>
+
+                <div className="mb-2 inline-flex rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-xs font-semibold text-yellow-300">
+                  DEMO / SIMULATED DATA
+                </div>
+
+                <h2 className="text-2xl font-bold text-white">
+                  Priority Response Plan Review
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-400">
+                  Prototype response for T. Nagar - CRITICAL risk -
+                  Prototype response recommendations
+                </p>
+
+              </div>
+
+              <button
+                onClick={() => setShowResponsePlan(false)}
+                className="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+
+            </div>
+
+            <div className="mt-6 space-y-3">
+
+              {[
+                "Verify water level with field team - T. Nagar Market area",
+                "Check drainage pump status - Pumping station 4",
+                "Alert traffic control - Usman Road diversion",
+                "Prepare evacuation notice - Low-lying streets",
+                "Confirm team deployment - Rescue team on standby",
+              ].map((step, idx) => (
+                <label
+                  key={idx}
+                  className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-700 bg-slate-800/50 p-3 hover:bg-slate-800"
+                >
+
+                  <input
+                    type="checkbox"
+                    checked={reviewedSteps[idx]}
+                    onChange={(e) => {
+                      const ns = [...reviewedSteps];
+
+                      ns[idx] = e.target.checked;
+
+                      setReviewedSteps(ns);
+                    }}
+                    className="mt-1 h-4 w-4"
+                  />
+
+                  <span
+                    className={`text-sm ${
+                      reviewedSteps[idx]
+                        ? "text-slate-500 line-through"
+                        : "text-slate-200"
+                    }`}
+                  >
+                    {step}
+                  </span>
+
+                </label>
+              ))}
+
+            </div>
+
+            <p className="mt-4 text-sm text-slate-400">
+              {reviewedSteps.filter(Boolean).length} / 5 reviewed -
+              Progress tracking
+            </p>
+
+            <div className="mt-4 flex gap-3">
+
+              <button
+                onClick={() => setShowResponsePlan(false)}
+                className="flex-1 rounded-lg border border-slate-700 py-2.5 font-semibold text-slate-300 hover:bg-slate-800"
+              >
+                Close
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowResponsePlan(false);
+                  alert("Response Plan Reviewed - Demo Success!");
+                }}
+                disabled={
+                  reviewedSteps.filter(Boolean).length < 5
+                }
+                className="flex-1 rounded-lg bg-green-600 py-2.5 font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                Confirm Review (
+                {reviewedSteps.filter(Boolean).length}/5)
+              </button>
+
+            </div>
+
           </div>
-          <h2 className="text-2xl font-bold text-white">Priority Response Plan Review</h2>
-          <p className="mt-1 text-sm text-slate-400">Prototype response for T. Nagar - CRITICAL risk - Prototype response recommendations</p>
         </div>
-        <button onClick={() => setShowResponsePlan(false)} className="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white"><X size={20} /></button>
-      </div>
-
-      <div className="mt-6 space-y-3">
-        {[
-          "Verify water level with field team - T. Nagar Market area",
-          "Check drainage pump status - Pumping station 4",
-          "Alert traffic control - Usman Road diversion",
-          "Prepare evacuation notice - Low-lying streets",
-          "Confirm team deployment - Rescue team on standby"
-        ].map((step, idx) => (
-          <label key={idx} className="flex items-start gap-3 rounded-xl border border-slate-700 bg-slate-800/50 p-3 cursor-pointer hover:bg-slate-800">
-            <input type="checkbox" checked={reviewedSteps[idx]} onChange={(e) => { const ns = [...reviewedSteps]; ns[idx] = e.target.checked; setReviewedSteps(ns); }} className="mt-1 h-4 w-4" />
-            <span className={`text-sm ${reviewedSteps[idx]? 'line-through text-slate-500' : 'text-slate-200'}`}>{step}</span>
-          </label>
-        ))}
-      </div>
-
-      <p className="mt-4 text-sm text-slate-400">{reviewedSteps.filter(Boolean).length} / 5 reviewed - Progress tracking</p>
-
-      <div className="mt-4 flex gap-3">
-        <button onClick={() => setShowResponsePlan(false)} className="flex-1 rounded-lg border border-slate-700 py-2.5 font-semibold text-slate-300 hover:bg-slate-800">Close</button>
-        <button onClick={() => { setShowResponsePlan(false); alert('Response Plan Reviewed - Demo Success!'); }} disabled={reviewedSteps.filter(Boolean).length < 5} className="flex-1 rounded-lg bg-green-600 py-2.5 font-semibold text-white hover:bg-green-700 disabled:opacity-50">
-          Confirm Review ({reviewedSteps.filter(Boolean).length}/5)
-        </button>
-      </div>
-    </div>
-  </div>
       )}
-  </div>
-      );
-    }
+
+    </div>
+  );
+}
+
