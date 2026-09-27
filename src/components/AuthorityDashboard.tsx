@@ -124,6 +124,122 @@ const areaKpiData = {
   },
 };
 
+const responsePlanData = {
+  "T. Nagar": {
+    risk: "CRITICAL",
+    priority: "IMMEDIATE RESPONSE",
+    focus: "Rapid water accumulation and drainage pressure",
+    actions: [
+      "Deploy field response teams to critical flood-prone locations.",
+      "Inspect major storm-water drains for possible blockage or reduced flow.",
+      "Monitor rapid water-level increases on low-lying roads and junctions.",
+      "Review emergency access routes and evacuation readiness.",
+      "Review citizen assistance requests originating from T. Nagar.",
+    ],
+    monitoringParameters: [
+      "Water-level increase",
+      "Drainage blockage",
+      "Road accessibility",
+      "Citizen assistance requests",
+    ],
+  },
+
+  Velachery: {
+    risk: "HIGH",
+    priority: "HIGH-PRIORITY RESPONSE",
+    focus: "Drainage capacity and increasing water accumulation",
+    actions: [
+      "Inspect drainage channels around flood-sensitive locations.",
+      "Check whether drainage capacity is being exceeded or reduced by blockage.",
+      "Monitor water accumulation around low-lying roads and residential areas.",
+      "Deploy field personnel to verify reported drainage and flooding conditions.",
+      "Review citizen assistance requests and prioritize verified cases.",
+    ],
+    monitoringParameters: [
+      "Drainage utilization",
+      "Water accumulation",
+      "Low-lying roads",
+      "Citizen reports",
+    ],
+  },
+
+  Adyar: {
+    risk: "HIGH",
+    priority: "HIGH-PRIORITY MONITORING",
+    focus: "Rising water level and drainage conditions",
+    actions: [
+      "Monitor water-level changes across flood-sensitive locations.",
+      "Inspect drainage outlets and nearby water-flow paths.",
+      "Verify reported flooding conditions through field personnel.",
+      "Review vulnerable locations and nearby citizen assistance requests.",
+      "Continue monitoring and escalate if the risk level increases.",
+    ],
+    monitoringParameters: [
+      "Water-level trend",
+      "Drainage outlet condition",
+      "Flooded locations",
+      "Vulnerable locations",
+    ],
+  },
+
+  Saidapet: {
+    risk: "MODERATE",
+    priority: "PREVENTIVE RESPONSE",
+    focus: "Low-lying road flooding and local drainage",
+    actions: [
+      "Inspect identified low-lying road sections.",
+      "Monitor local storm-water drainage performance.",
+      "Verify citizen-reported flooding conditions.",
+      "Prepare field response resources if water level starts increasing.",
+      "Continue periodic flood-risk monitoring during rainfall.",
+    ],
+    monitoringParameters: [
+      "Low-lying roads",
+      "Local drainage",
+      "Water accumulation",
+      "Citizen reports",
+    ],
+  },
+
+  "Anna Nagar": {
+    risk: "MODERATE",
+    priority: "PREVENTIVE MONITORING",
+    focus: "Localized water accumulation",
+    actions: [
+      "Monitor flood-sensitive locations.",
+      "Check local drainage flow conditions.",
+      "Review incoming citizen reports for the selected area.",
+      "Verify any increase in localized water accumulation.",
+      "Keep response personnel ready if the risk level increases.",
+    ],
+    monitoringParameters: [
+      "Localized accumulation",
+      "Drainage flow",
+      "Citizen reports",
+      "Risk-level changes",
+    ],
+  },
+
+  Tambaram: {
+    risk: "LOW",
+    priority: "ROUTINE MONITORING",
+    focus: "Early detection and preventive monitoring",
+    actions: [
+      "Continue routine flood-risk monitoring.",
+      "Monitor water-level changes in vulnerable locations.",
+      "Review new citizen flood reports when received.",
+      "Check drainage conditions during rainfall.",
+      "Escalate the response if the flood-risk level increases.",
+    ],
+    monitoringParameters: [
+      "Water level",
+      "Drainage condition",
+      "Citizen reports",
+      "Risk escalation",
+    ],
+  },
+};
+
 export default function AuthorityDashboard() {
   const [assistanceRequests, setAssistanceRequests] = useState<any[]>([]);
 
@@ -170,6 +286,9 @@ export default function AuthorityDashboard() {
 
   const selectedKpi = selectedArea
     ? areaKpiData[selectedArea as keyof typeof areaKpiData]
+    : null;
+  const selectedResponsePlan = selectedArea
+    ? responsePlanData[selectedArea as keyof typeof responsePlanData]
     : null;
 
   return (
@@ -282,7 +401,7 @@ export default function AuthorityDashboard() {
             </div>
 
             <span className="text-gray-500">
-              {showAreas ? "▲" : "▼"}
+              {showAreas ? "Hide Areas" : "Select Area"}
             </span>
 
           </button>
@@ -404,7 +523,7 @@ export default function AuthorityDashboard() {
           </div>
 
           <p className="mt-2 text-3xl font-bold">
-            {selectedKpi?.criticalZones ?? "—"}
+            {selectedKpi?.criticalZones ?? "-"}
           </p>
 
           <p className="mt-1 text-xs text-red-600">
@@ -433,7 +552,7 @@ export default function AuthorityDashboard() {
           </div>
 
           <p className="mt-2 text-3xl font-bold">
-            {selectedKpi?.highRiskAreas ?? "—"}
+            {selectedKpi?.highRiskAreas ?? "-"}
           </p>
 
           <p className="mt-1 text-xs text-orange-600">
@@ -462,7 +581,7 @@ export default function AuthorityDashboard() {
           </div>
 
           <p className="mt-2 text-3xl font-bold">
-            {selectedKpi?.peopleAtRisk ?? "—"}
+            {selectedKpi?.peopleAtRisk ?? "-"}
           </p>
 
           <p className="mt-1 text-xs text-purple-600">
@@ -491,7 +610,7 @@ export default function AuthorityDashboard() {
           </div>
 
           <p className="mt-2 text-3xl font-bold">
-            {selectedKpi?.waterLevel ?? "—"}
+            {selectedKpi?.waterLevel ?? "-"}
           </p>
 
           <p className="mt-1 text-xs text-blue-600">
@@ -523,7 +642,7 @@ export default function AuthorityDashboard() {
               </h2>
 
               <p className="text-sm text-gray-500">
-                Simulated city risk progression
+                {selectedArea ? `Simulated risk progression for ${selectedArea}` : "Select an area to view its simulated risk progression"}
               </p>
 
             </div>
@@ -603,53 +722,66 @@ export default function AuthorityDashboard() {
                   Priority Area
                 </p>
 
-                <p className="text-2xl font-bold text-gray-900">
-                  T. Nagar
-                </p>
+                {selectedArea && selectedResponsePlan ? (
+                  <>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {selectedArea}
+                    </p>
+
+                    <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-bold text-red-700">
+                      {selectedResponsePlan.risk}
+                    </span>
+                  </>
+                ) : (
+                  <p className="text-sm font-medium text-gray-500">
+                    Select Area
+                  </p>
+                )}
 
               </div>
 
-              <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-bold text-red-700">
-                CRITICAL
-              </span>
 
             </div>
 
-            <div className="mt-5 space-y-3">
-
-              {[
-                "Deploy field response team",
-                "Monitor drainage blockage",
-                "Review evacuation readiness",
-                "Issue authority-level warning if verified",
-              ].map((action) => (
-                <div
-                  key={action}
-                  className="flex items-center gap-3 text-sm text-gray-700"
-                >
-
-                  <CheckCircle
-                    size={17}
-                    className="text-red-600"
-                  />
-
-                  {action}
-
+            {selectedArea && selectedResponsePlan ? (
+              <>
+                <div className="mt-3">
+                  <p className="text-xs font-semibold uppercase text-gray-500">
+                    {selectedResponsePlan.priority}
+                  </p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    {selectedResponsePlan.focus}
+                  </p>
                 </div>
-              ))}
 
-            </div>
+                <div className="mt-5 space-y-3">
+                  {selectedResponsePlan.actions.map((action) => (
+                    <div
+                      key={action}
+                      className="flex items-center gap-3 text-sm text-gray-700"
+                    >
+                      <CheckCircle
+                        size={17}
+                        className="text-red-600"
+                      />
+                      {action}
+                    </div>
+                  ))}
+                </div>
 
-            <button
-              onClick={() => setShowResponsePlan(true)}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700"
-            >
-
-              Review Response Plan
-
-              <ArrowUpRight size={17} />
-
-            </button>
+                <button
+                  onClick={() => setShowResponsePlan(true)}
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700"
+                >
+                  Review Response Plan
+                  <ArrowUpRight size={17} />
+                </button>
+              </>
+            ) : (
+              <p className="py-6 text-center text-sm text-gray-500">
+                Select an area to view its priority response.
+              </p>
+            )}
 
           </div>
 
@@ -874,7 +1006,7 @@ export default function AuthorityDashboard() {
                     </td>
 
                     <td className="px-4 py-3">
-                      {request.created_at || "—"}
+                      {request.created_at || "-"}
                     </td>
 
                     <td className="px-4 py-3">
@@ -944,7 +1076,7 @@ export default function AuthorityDashboard() {
         </div>
 
         <p className="mt-4 text-xs text-gray-400">
-          DEMO / SIMULATED DATA — Prototype assistance requests only.
+          DEMO / SIMULATED DATA - Prototype assistance requests only.
         </p>
 
       </div>
@@ -1058,9 +1190,32 @@ export default function AuthorityDashboard() {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-400">
-                  Prototype response for T. Nagar - CRITICAL risk -
-                  Prototype response recommendations
+                  Prototype response for {selectedArea ?? "Selected Area"} - {selectedResponsePlan?.risk ?? "N/A"} risk -
+                  {selectedResponsePlan?.priority ?? "Select an area first"}
                 </p>
+
+                {selectedArea && selectedResponsePlan && selectedKpi && (
+                  <div className="mt-4 rounded-xl border border-slate-700 bg-slate-800/50 p-4 space-y-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Response Focus</p>
+                      <p className="mt-1 text-sm text-slate-200">{selectedResponsePlan.focus}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-slate-500">People at Risk</p>
+                        <p className="mt-1 font-semibold text-white">{selectedKpi.peopleAtRisk}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Water Level</p>
+                        <p className="mt-1 font-semibold text-white">{selectedKpi.waterLevel}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Monitoring Parameters</p>
+                       <p className="mt-1 text-sm text-slate-300">{selectedResponsePlan.monitoringParameters.join(" | ")}</p>
+                    </div>
+                  </div>
+                )}
 
               </div>
 
@@ -1074,14 +1229,8 @@ export default function AuthorityDashboard() {
             </div>
 
             <div className="mt-6 space-y-3">
+              {selectedResponsePlan?.actions.map((step, idx) => (
 
-              {[
-                "Verify water level with field team - T. Nagar Market area",
-                "Check drainage pump status - Pumping station 4",
-                "Alert traffic control - Usman Road diversion",
-                "Prepare evacuation notice - Low-lying streets",
-                "Confirm team deployment - Rescue team on standby",
-              ].map((step, idx) => (
                 <label
                   key={idx}
                   className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-700 bg-slate-800/50 p-3 hover:bg-slate-800"
