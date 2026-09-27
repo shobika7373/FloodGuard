@@ -1,901 +1,947 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  Brain,
-  CloudRain,
-  Waves,
-  Droplets,
-  Mountain,
-  History,
   AlertTriangle,
-  Info,
-  Search,
-  Check,
+  Brain,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  CloudRain,
+  Droplets,
+  Gauge,
+  MapPin,
+  ShieldAlert,
+  TrendingUp,
 } from "lucide-react";
 import { getExplainableAI } from "../services/api";
 
-type BackendFactor = {
-  factor: string;
-  value: number;
-  contribution: number;
-};
+interface ExplainableAIProps {
+  onNavigate?: (page: string) => void;
+}
 
-type Factor = {
+interface AreaData {
   name: string;
-  value: number;
-  impact: string;
-  contribution: number;
-  icon: any;
-  description: string;
-  unit?: string;
-};
-
-type AreaPrototype = {
-  name: string;
-  riskScore?: number;
-  category: string;
-  rainfall?: number;
-  waterLevel?: number;
-  drainage?: number;
-  elevation?: number;
-  historical?: number;
-  confidence?: number;
-  factors: Factor[];
+  riskScore: number;
+  category: "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
+  confidence: number;
+  rainfall: number;
+  waterLevel: number;
+  drainageUtilization: number;
+  vulnerability: number;
   explanation: string;
-  recommendation: string;
-};
-
-const SUPPORTED_AREAS = [
-  "T. Nagar",
-  "Velachery",
-  "Adyar",
-  "Saidapet",
-  "Anna Nagar",
-  "Tambaram",
-];
-
-const factorIcons: Record<string, any> = {
-  "Heavy Rainfall": CloudRain,
-  "Water Level": Waves,
-  "Drainage Utilization": Droplets,
-  "Low Elevation": Mountain,
-  "Historical Vulnerability": History,
-};
-
-const factorDescriptions: Record<string, string> = {
-  "Heavy Rainfall": "High rainfall intensity increases surface runoff.",
-  "Water Level": "Rising water levels indicate increasing flood pressure.",
-  "Drainage Utilization":
-    "High drainage utilization indicates increased system pressure.",
-  "Low Elevation":
-    "Lower-elevation areas can accumulate water more easily.",
-  "Historical Vulnerability":
-    "Previous flood events increase the area's prototype vulnerability score.",
-};
-
-function getImpact(value: number) {
-  if (value >= 90) return "Very High";
-  if (value >= 75) return "High";
-  if (value >= 50) return "Moderate";
-  return "Low";
+  action: string;
 }
 
-function makeFactor(
-  name: string,
-  value: number,
-  contribution: number,
-  unit = "%"
-): Factor {
-  return {
-    name,
-    value,
-    contribution,
-    impact: getImpact(value),
-    icon: factorIcons[name] ?? Info,
-    description:
-      factorDescriptions[name] ?? "Prototype simulated risk factor.",
-    unit,
-  };
+interface BackendResponse {
+  area?: string;
+  risk_score?: number;
+  category?: "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
+  confidence?: number;
+  factors?: string[];
 }
 
-/*
- * Area-specific prototype explanations.
- *
- * Numerical values already available in the current FloodGuard main branch
- * are preserved for T. Nagar, Velachery, Adyar and Saidapet.
- *
- * Anna Nagar and Tambaram are supported explanation contexts, but numerical
- * measurements that are not already available in the current prototype are
- * intentionally left undefined rather than being fabricated.
- */
-const AREA_DATA: Record<string, AreaPrototype> = {
+const AREA_DATA: Record<string, AreaData> = {
   "T. Nagar": {
     name: "T. Nagar",
     riskScore: 86,
-    category: "Critical",
-    rainfall: 78,
-    waterLevel: 0.84,
-    drainage: 84,
-    elevation: 72,
-    historical: 80,
-    confidence: 87,
-    factors: [
-      makeFactor("Heavy Rainfall", 78, 30),
-      makeFactor("Water Level", 0.84, 22, "m"),
-      makeFactor("Drainage Utilization", 84, 18),
-      makeFactor("Low Elevation", 72, 12),
-      makeFactor("Historical Vulnerability", 80, 10),
-    ],
+    category: "CRITICAL",
+    confidence: 91,
+    rainfall: 72,
+    waterLevel: 1.42,
+    drainageUtilization: 94,
+    vulnerability: 82,
     explanation:
-      "Flood risk is elevated because heavy rainfall can increase surface runoff while prototype drainage pressure and rapid surface-water accumulation contribute to the simulated risk assessment.",
-    recommendation:
-      "Monitor drainage pressure and accumulated surface water, and review the existing prototype response recommendations for the selected area.",
+      "High rainfall intensity combined with very high drainage utilization and elevated water level creates a critical flood-risk condition.",
+    action:
+      "Immediate drainage inspection, traffic diversion planning, and continuous flood monitoring are recommended.",
   },
 
   Velachery: {
     name: "Velachery",
-    riskScore: 79,
-    category: "High",
+    riskScore: 78,
+    category: "HIGH",
+    confidence: 88,
     rainfall: 65,
-    waterLevel: 0.96,
-    drainage: 79,
-    elevation: 86,
-    historical: 72,
-    confidence: 82,
-    factors: [
-      makeFactor("Heavy Rainfall", 65, 24),
-      makeFactor("Water Level", 0.96, 22, "m"),
-      makeFactor("Drainage Utilization", 79, 20),
-      makeFactor("Low Elevation", 86, 20),
-      makeFactor("Historical Vulnerability", 72, 8),
-    ],
+    waterLevel: 1.18,
+    drainageUtilization: 89,
+    vulnerability: 79,
     explanation:
-      "Flood risk is elevated because the prototype terrain assessment identifies low-lying conditions, while drainage stress and rising surface-water pressure can contribute to accumulation.",
-    recommendation:
-      "Monitor low-lying locations, drainage capacity pressure and changes in water level in the prototype scenario.",
+      "Heavy rainfall, high drainage utilization, and area vulnerability increase the probability of urban flooding.",
+    action:
+      "Monitor drainage capacity, prepare pumping resources, and issue precautionary alerts.",
   },
 
   Adyar: {
     name: "Adyar",
-    riskScore: 68,
-    category: "High",
-    rainfall: 58,
-    waterLevel: 1.42,
-    drainage: 68,
-    elevation: 64,
-    historical: 70,
-    confidence: 78,
-    factors: [
-      makeFactor("Heavy Rainfall", 58, 20),
-      makeFactor("Water Level", 1.42, 30, "m"),
-      makeFactor("Drainage Utilization", 68, 20),
-      makeFactor("Low Elevation", 64, 14),
-      makeFactor("Historical Vulnerability", 70, 8),
-    ],
+    riskScore: 74,
+    category: "HIGH",
+    confidence: 86,
+    rainfall: 61,
+    waterLevel: 1.05,
+    drainageUtilization: 84,
+    vulnerability: 76,
     explanation:
-      "Flood risk is elevated in the prototype because the simulated water level is rising and rainfall contributes additional runoff pressure alongside drainage conditions.",
-    recommendation:
-      "Monitor the simulated water-level trend, rainfall contribution and drainage conditions around the selected area.",
+      "Sustained rainfall and increasing water levels combined with high drainage utilization indicate elevated flood risk.",
+    action:
+      "Inspect vulnerable drainage points and maintain readiness for localized water accumulation.",
   },
 
   Saidapet: {
     name: "Saidapet",
-    riskScore: 91,
-    category: "Critical",
-    rainfall: 82,
-    waterLevel: 1.18,
-    drainage: 91,
-    elevation: 78,
-    historical: 82,
-    confidence: 89,
-    factors: [
-      makeFactor("Heavy Rainfall", 82, 28),
-      makeFactor("Water Level", 1.18, 22, "m"),
-      makeFactor("Drainage Utilization", 91, 28),
-      makeFactor("Low Elevation", 78, 14),
-      makeFactor("Historical Vulnerability", 82, 8),
-    ],
+    riskScore: 58,
+    category: "MODERATE",
+    confidence: 81,
+    rainfall: 48,
+    waterLevel: 0.82,
+    drainageUtilization: 68,
+    vulnerability: 61,
     explanation:
-      "Flood risk is elevated because the prototype rainfall scenario is high and simulated drainage stress can contribute to water accumulation across the area.",
-    recommendation:
-      "Prioritize monitoring of drainage pressure, rainfall intensity and surface-water accumulation in the prototype scenario.",
+      "Moderate rainfall and drainage utilization produce a moderate flood-risk condition with localized vulnerability.",
+    action:
+      "Continue monitoring rainfall and drainage utilization for changes in risk level.",
   },
 
   "Anna Nagar": {
-  name: "Anna Nagar",
-  riskScore: 62,
-  category: "Moderate",
-  rainfall: 60,
-  waterLevel: 0.72,
-  drainage: 62,
-  elevation: 55,
-  historical: 52,
-  confidence: 75,
-    factors: [
-      makeFactor("Heavy Rainfall", 60, 26),
-      makeFactor("Drainage Utilization", 62, 24),
-      makeFactor("Low Elevation", 55, 18),
-      makeFactor("Historical Vulnerability", 52, 12),
-    ],
+    name: "Anna Nagar",
+    riskScore: 49,
+    category: "MODERATE",
+    confidence: 79,
+    rainfall: 42,
+    waterLevel: 0.68,
+    drainageUtilization: 63,
+    vulnerability: 55,
     explanation:
-      "The prototype explanation for Anna Nagar focuses on rainfall-driven runoff, drainage pressure and surface accumulation. Numerical measurements for this area are not currently available in the inspected prototype data.",
-    recommendation:
-      "Monitor rainfall-driven surface accumulation and prototype drainage conditions. Additional area-specific measurements can be connected when available.",
+      "Current rainfall and drainage conditions indicate moderate flood susceptibility.",
+    action:
+      "Maintain routine monitoring and review drainage conditions if rainfall increases.",
   },
 
   Tambaram: {
-  name: "Tambaram",
-  riskScore: 59,
-  category: "Moderate",
-  rainfall: 58,
-  waterLevel: 0.68,
-  drainage: 60,
-  elevation: 54,
-  historical: 50,
-  confidence: 74,
-    factors: [
-      makeFactor("Heavy Rainfall", 58, 25),
-      makeFactor("Drainage Utilization", 60, 25),
-      makeFactor("Low Elevation", 54, 18),
-      makeFactor("Historical Vulnerability", 50, 12),
-    ],
+    name: "Tambaram",
+    riskScore: 36,
+    category: "LOW",
+    confidence: 76,
+    rainfall: 31,
+    waterLevel: 0.42,
+    drainageUtilization: 48,
+    vulnerability: 43,
     explanation:
-      "The prototype explanation for Tambaram focuses on rainfall, drainage conditions and local water accumulation. Numerical measurements for this area are not currently available in the inspected prototype data.",
-    recommendation:
-      "Monitor rainfall conditions, drainage pressure and local water accumulation in the prototype scenario.",
+      "Lower rainfall intensity and available drainage capacity currently result in a lower flood-risk condition.",
+    action:
+      "Continue normal monitoring and reassess if rainfall intensity increases.",
   },
 };
 
-const fallbackFactors = AREA_DATA["T. Nagar"].factors;
+const AREA_NAMES = Object.keys(AREA_DATA);
+
+function getRiskClass(category: AreaData["category"]) {
+  switch (category) {
+    case "CRITICAL":
+      return "border-red-500/40 bg-red-500/10 text-red-300";
+
+    case "HIGH":
+      return "border-orange-500/40 bg-orange-500/10 text-orange-300";
+
+    case "MODERATE":
+      return "border-yellow-500/40 bg-yellow-500/10 text-yellow-300";
+
+    default:
+      return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
+  }
+}
+
+function getRiskBarClass(category: AreaData["category"]) {
+  switch (category) {
+    case "CRITICAL":
+      return "bg-red-500";
+
+    case "HIGH":
+      return "bg-orange-500";
+
+    case "MODERATE":
+      return "bg-yellow-500";
+
+    default:
+      return "bg-emerald-500";
+  }
+}
+
+function getRiskIcon(category: AreaData["category"]) {
+  switch (category) {
+    case "CRITICAL":
+      return <ShieldAlert className="h-6 w-6" />;
+
+    case "HIGH":
+      return <AlertTriangle className="h-6 w-6" />;
+
+    case "MODERATE":
+      return <TrendingUp className="h-6 w-6" />;
+
+    default:
+      return <CheckCircle className="h-6 w-6" />;
+  }
+}
 
 export default function ExplainableAI({
   onNavigate,
-}: {
-  onNavigate?: (page: string) => void;
-}) {
-  const [area, setArea] = useState("T. Nagar");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [riskScore, setRiskScore] = useState<number | undefined>(
-    AREA_DATA["T. Nagar"].riskScore
-  );
-  const [category, setCategory] = useState(
-    AREA_DATA["T. Nagar"].category
-  );
-  const [confidence, setConfidence] = useState(
-    AREA_DATA["T. Nagar"].confidence ?? 0
-  );
-  const [factors, setFactors] = useState<Factor[]>(fallbackFactors);
-  const [loading, setLoading] = useState(true);
-  const [backendError, setBackendError] = useState(false);
+}: ExplainableAIProps) {
+  const [area, setArea] = useState<string | null>(null);
+  const [showAreas, setShowAreas] = useState(false);
 
-  const selectedAreaData = AREA_DATA[area];
+  const [riskScore, setRiskScore] = useState<number | null>(null);
+  const [category, setCategory] =
+    useState<AreaData["category"] | null>(null);
+  const [confidence, setConfidence] = useState<number | null>(null);
 
-  const matchingAreas = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
+  const [factors, setFactors] = useState<string[]>([]);
 
-    if (!query) return SUPPORTED_AREAS;
+  const [backendLoading, setBackendLoading] = useState(false);
+  const [backendError, setBackendError] = useState("");
 
-    return SUPPORTED_AREAS.filter((supportedArea) =>
-      supportedArea.toLowerCase().includes(query)
-    );
-  }, [searchTerm]);
+  const selectedAreaData = area ? AREA_DATA[area] : null;
 
-  const unsupportedSearch =
-    searchTerm.trim().length > 0 &&
-    matchingAreas.length === 0 &&
-    !AREA_DATA[searchTerm.trim()];
-
-  useEffect(() => {
-    async function loadExplainableAI() {
+  /*
+   * Load Explainable AI data from backend
+   * whenever an area is selected.
+   */
+  const loadBackendData = useCallback(
+    async (selectedArea: string) => {
       try {
-        setLoading(true);
-        setBackendError(false);
+        setBackendLoading(true);
+        setBackendError("");
 
-        const response = await getExplainableAI();
+        const response: BackendResponse =
+          await getExplainableAI();
 
         /*
-         * Keep the backend integration intact for the default prototype
-         * context. Area selection below uses the local six-area prototype
-         * structure so the section can switch areas without changing APIs.
+         * Apply backend values only when the backend response
+         * belongs to the selected area.
          */
-        if (response?.area && AREA_DATA[response.area]) {
-          const backendArea = response.area;
-          setArea(backendArea);
-
-          const localData = AREA_DATA[backendArea];
-
-          if (typeof response?.risk_score === "number") {
+        if (response?.area === selectedArea) {
+          if (typeof response.risk_score === "number") {
             setRiskScore(response.risk_score);
-          } else {
-            setRiskScore(localData.riskScore);
           }
 
-          if (response?.category) {
+          if (response.category) {
             setCategory(response.category);
-          } else {
-            setCategory(localData.category);
           }
 
-          if (typeof response?.confidence === "number") {
+          if (typeof response.confidence === "number") {
             setConfidence(response.confidence);
-          } else {
-            setConfidence(localData.confidence ?? 0);
           }
 
-          if (Array.isArray(response?.factors)) {
-            setFactors(
-              response.factors.map((factor: BackendFactor) => ({
-                name: factor.factor,
-                value: factor.value,
-                contribution: factor.contribution,
-                impact: getImpact(factor.value),
-                icon: factorIcons[factor.factor] ?? Info,
-                description:
-                  factorDescriptions[factor.factor] ??
-                  "Backend-provided simulated risk factor.",
-                unit: factor.factor === "Water Level" ? "m" : "%",
-              }))
-            );
+          if (Array.isArray(response.factors)) {
+            setFactors(response.factors);
           }
         }
       } catch (error) {
-        console.error("Explainable AI backend error:", error);
-        setBackendError(true);
+        console.error(
+          "Explainable AI backend error:",
+          error
+        );
+
+        setBackendError(
+          "Backend data unavailable. Showing prototype area data."
+        );
       } finally {
-        setLoading(false);
+        setBackendLoading(false);
       }
+    },
+    []
+  );
+
+  /*
+   * Automatically load backend information
+   * after an area has been selected.
+   */
+  useEffect(() => {
+    if (!area) {
+      return;
     }
 
-    loadExplainableAI();
-  }, []);
+    loadBackendData(area);
+  }, [area, loadBackendData]);
 
-  function selectArea(selectedArea: string) {
+  /*
+   * Select an area from the button list.
+   */
+  const selectArea = (selectedArea: string) => {
     const data = AREA_DATA[selectedArea];
 
-    if (!data) return;
+    if (!data) {
+      return;
+    }
 
     setArea(selectedArea);
-    setSearchTerm("");
+    setShowAreas(false);
 
+    /*
+     * Show local prototype values immediately.
+     * Backend values can update them after the API call.
+     */
     setRiskScore(data.riskScore);
     setCategory(data.category);
-    setConfidence(data.confidence ?? 0);
-    setFactors(data.factors);
-  }
+    setConfidence(data.confidence);
 
-  const rainfallFactor = factors.find(
-    (factor) => factor.name === "Heavy Rainfall"
-  );
+    setFactors([
+      `Rainfall intensity: ${data.rainfall} mm/hr`,
+      `Drainage utilization: ${data.drainageUtilization}%`,
+      `Water level: ${data.waterLevel.toFixed(2)} m`,
+      `Area vulnerability: ${data.vulnerability}%`,
+    ]);
 
-  const drainageFactor = factors.find(
-    (factor) => factor.name === "Drainage Utilization"
-  );
-
-  const elevationFactor = factors.find(
-    (factor) => factor.name === "Low Elevation"
-  );
-
-  const historicalFactor = factors.find(
-    (factor) => factor.name === "Historical Vulnerability"
-  );
+    setBackendError("");
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-slate-950 p-6 text-white">
       <div className="mx-auto max-w-7xl space-y-6">
-        {loading && (
-          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-            <p className="text-sm font-semibold text-blue-900">
-              Loading explainable AI data...
-            </p>
-          </div>
-        )}
 
-        {backendError && !loading && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <p className="text-sm font-semibold text-amber-900">
-              Backend unavailable — showing DEMO / SIMULATED DATA.
-            </p>
-          </div>
-        )}
+        {/* HEADER */}
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="mb-2 flex items-center gap-3">
+                <div className="rounded-xl bg-cyan-500/10 p-3">
+                  <Brain className="h-7 w-7 text-cyan-400" />
+                </div>
 
-        {/* Header */}
-        <div className="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="mb-2 flex items-center gap-2">
-              <Brain className="h-7 w-7 text-indigo-600" />
-              <h1 className="text-2xl font-bold text-slate-900">
-                Why This Area Will Flood?
-              </h1>
-            </div>
+                <div>
+                  <h1 className="text-2xl font-bold">
+                    Why This Area Will Flood?
+                  </h1>
 
-            <p className="text-sm text-slate-500">
-              Prototype flood-risk explanation for the selected area.
-            </p>
-          </div>
-
-          <div className="rounded-full bg-amber-100 px-4 py-2 text-xs font-bold text-amber-700">
-            DEMO / SIMULATED DATA
-          </div>
-        </div>
-
-        {/* Area Search */}
-        <div className="rounded-2xl bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end">
-            <div className="flex-1">
-              <label
-                htmlFor="area-search"
-                className="mb-2 block text-sm font-semibold text-slate-700"
-              >
-                Search flood-risk area
-              </label>
-
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-
-                <input
-                  id="area-search"
-                  type="text"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Search T. Nagar, Velachery, Adyar..."
-                  className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                />
+                  <p className="text-sm text-slate-400">
+                    Explainable AI-based flood-risk reasoning
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="rounded-xl bg-indigo-50 px-4 py-3">
-              <p className="text-xs font-medium text-indigo-600">
-                Selected Area
-              </p>
-              <p className="mt-1 font-bold text-indigo-900">{area}</p>
+            <div className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-xs font-semibold text-cyan-300">
+              DEMO / SIMULATED AI
             </div>
           </div>
-
-          {searchTerm.trim() && (
-            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
-              {matchingAreas.length > 0 ? (
-                <div className="space-y-2">
-                  <p className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Supported areas
-                  </p>
-
-                  {matchingAreas.map((supportedArea) => (
-                    <button
-                      key={supportedArea}
-                      type="button"
-                      onClick={() => selectArea(supportedArea)}
-                      className={`flex w-full items-center justify-between rounded-lg px-3 py-3 text-left text-sm transition ${
-                        area === supportedArea
-                          ? "bg-indigo-100 font-semibold text-indigo-900"
-                          : "bg-white text-slate-700 hover:bg-indigo-50"
-                      }`}
-                    >
-                      <span>{supportedArea}</span>
-
-                      {area === supportedArea && (
-                        <Check className="h-4 w-4 text-indigo-600" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">
-                    Area not available in the current prototype.
-                  </p>
-
-                  <p className="mt-2 text-xs text-slate-500">
-                    Supported areas: {SUPPORTED_AREAS.join(", ")}.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {!searchTerm.trim() && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {SUPPORTED_AREAS.map((supportedArea) => (
-                <button
-                  key={supportedArea}
-                  type="button"
-                  onClick={() => selectArea(supportedArea)}
-                  className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
-                    area === supportedArea
-                      ? "border-indigo-600 bg-indigo-600 text-white"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:bg-indigo-50"
-                  }`}
-                >
-                  {supportedArea}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {unsupportedSearch && (
-            <p className="mt-3 text-xs text-amber-700">
-              This search does not match a supported prototype area.
-            </p>
-          )}
         </div>
 
-        {/* Risk Summary */}
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl bg-white p-6 shadow-sm md:col-span-2">
-            <p className="text-sm font-medium text-slate-500">
-              Selected Area
+        {/* AREA SELECTION */}
+        <div className="flex justify-center">
+          <div className="w-full max-w-xl rounded-2xl border border-slate-800 bg-slate-900/70 p-6 text-center">
+            <div className="mb-3 flex items-center justify-center gap-2">
+              <MapPin className="h-5 w-5 text-cyan-400" />
+
+              <h2 className="text-lg font-semibold">
+                Area Selection
+              </h2>
+            </div>
+
+            <p className="mb-5 text-sm text-slate-400">
+              Select an area to view its explainable flood-risk analysis.
             </p>
 
-            <h2 className="mt-2 text-3xl font-bold text-slate-900">
-              {area}
-            </h2>
+            {/* MAIN SELECT BUTTON */}
+            <button
+              type="button"
+              onClick={() => setShowAreas((previous) => !previous)}
+              className="mx-auto flex min-w-[240px] items-center justify-between gap-4 rounded-xl border border-cyan-500/40 bg-slate-950 px-5 py-3 text-left transition hover:border-cyan-400 hover:bg-slate-800"
+            >
+              <span className="flex items-center gap-3">
+                <MapPin className="h-5 w-5 text-cyan-400" />
 
-            <p className="mt-2 text-sm text-slate-500">
-              Chennai, Tamil Nadu
-            </p>
+                <span
+                  className={
+                    area
+                      ? "font-medium text-white"
+                      : "font-medium text-slate-400"
+                  }
+                >
+                  {area ?? "Select Area"}
+                </span>
+              </span>
 
-            <div className="mt-6 rounded-xl bg-slate-50 p-4">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-1 h-5 w-5 text-red-500" />
+              {showAreas ? (
+                <ChevronUp className="h-5 w-5 text-slate-400" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-slate-400" />
+              )}
+            </button>
 
-                <div>
-                  <p className="font-semibold text-slate-900">
-                    {category} Flood Risk
-                  </p>
+            {/* AREA BUTTONS */}
+            {showAreas && (
+              <div className="mx-auto mt-4 grid max-w-md grid-cols-2 gap-3">
+                {AREA_NAMES.map((areaName) => (
+                  <button
+                    key={areaName}
+                    type="button"
+                    onClick={() => selectArea(areaName)}
+                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${
+                      area === areaName
+                        ? "border-cyan-400 bg-cyan-500/10 text-cyan-300"
+                        : "border-slate-700 bg-slate-950 text-slate-300 hover:border-cyan-500/50 hover:bg-slate-800"
+                    }`}
+                  >
+                    {areaName}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
 
-                  <p className="mt-1 text-sm text-slate-600">
+        {/* NOTHING ELSE IS SHOWN UNTIL AREA IS SELECTED */}
+        {area && selectedAreaData && (
+          <>
+            {/* BACKEND STATUS */}
+            <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-5 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`h-2.5 w-2.5 rounded-full ${
+                      backendLoading
+                        ? "animate-pulse bg-yellow-400"
+                        : backendError
+                        ? "bg-orange-400"
+                        : "bg-emerald-400"
+                    }`}
+                  />
+
+                  <div>
+                    <p className="text-sm font-medium">
+                      Explainable AI Data
+                    </p>
+
+                    <p className="text-xs text-slate-500">
+                      {backendLoading
+                        ? "Loading backend information..."
+                        : backendError
+                        ? backendError
+                        : "Prototype analysis active"}
+                    </p>
+                  </div>
+                </div>
+
+                <span className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-xs text-slate-400">
+                  {selectedAreaData.name}
+                </span>
+              </div>
+            </div>
+
+            {/* RISK SUMMARY */}
+            <div className="grid gap-6 lg:grid-cols-3">
+
+              {/* RISK SCORE */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-400">
+                      Flood Risk Score
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      AI-derived prototype score
+                    </p>
+                  </div>
+
+                  <Gauge className="h-6 w-6 text-cyan-400" />
+                </div>
+
+                <div className="flex items-end gap-2">
+                  <span className="text-5xl font-bold">
+                    {riskScore ?? "--"}
+                  </span>
+
+                  <span className="mb-2 text-slate-500">
+                    / 100
+                  </span>
+                </div>
+
+                <div className="mt-5 h-3 overflow-hidden rounded-full bg-slate-800">
+                  <div
+                    className={`h-full rounded-full transition-all ${getRiskBarClass(
+                      category ?? selectedAreaData.category
+                    )}`}
+                    style={{
+                      width: `${Math.min(
+                        Math.max(riskScore ?? 0, 0),
+                        100
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* RISK CATEGORY */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+                <p className="text-sm text-slate-400">
+                  Risk Category
+                </p>
+
+                <div
+                  className={`mt-5 flex items-center gap-4 rounded-xl border p-5 ${getRiskClass(
+                    category ?? selectedAreaData.category
+                  )}`}
+                >
+                  {getRiskIcon(
+                    category ?? selectedAreaData.category
+                  )}
+
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {category ?? selectedAreaData.category}
+                    </p>
+
+                    <p className="text-xs opacity-80">
+                      Current prototype classification
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CONFIDENCE */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-400">
+                      AI Confidence
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      Model confidence estimate
+                    </p>
+                  </div>
+
+                  <Brain className="h-6 w-6 text-purple-400" />
+                </div>
+
+                <div className="text-5xl font-bold">
+                  {confidence ?? "--"}%
+                </div>
+
+                <div className="mt-5 h-3 overflow-hidden rounded-full bg-slate-800">
+                  <div
+                    className="h-full rounded-full bg-purple-500"
+                    style={{
+                      width: `${Math.min(
+                        Math.max(confidence ?? 0, 0),
+                        100
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* MAIN ANALYSIS */}
+            <div className="grid gap-6 lg:grid-cols-2">
+
+              {/* MAIN RISK FACTORS */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+                <div className="mb-5 flex items-center gap-3">
+                  <div className="rounded-lg bg-orange-500/10 p-2">
+                    <AlertTriangle className="h-5 w-5 text-orange-400" />
+                  </div>
+
+                  <div>
+                    <h2 className="font-semibold">
+                      Main Risk Factors
+                    </h2>
+
+                    <p className="text-xs text-slate-500">
+                      Variables contributing to the AI decision
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {factors.map((factor, index) => (
+                    <div
+                      key={`${factor}-${index}`}
+                      className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-950/60 p-4"
+                    >
+                      <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-500/10 text-xs font-bold text-cyan-400">
+                        {index + 1}
+                      </div>
+
+                      <p className="text-sm text-slate-300">
+                        {factor}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* AREA EXPLANATION */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+                <div className="mb-5 flex items-center gap-3">
+                  <div className="rounded-lg bg-cyan-500/10 p-2">
+                    <Brain className="h-5 w-5 text-cyan-400" />
+                  </div>
+
+                  <div>
+                    <h2 className="font-semibold">
+                      Area Explanation
+                    </h2>
+
+                    <p className="text-xs text-slate-500">
+                      Human-readable AI reasoning
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-5">
+                  <p className="text-sm leading-7 text-slate-300">
                     {selectedAreaData.explanation}
                   </p>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="rounded-2xl bg-slate-900 p-6 text-white shadow-sm">
-            <p className="text-sm text-slate-300">
-              Prototype Risk Score
-            </p>
+            {/* RISK BREAKDOWN */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold">
+                  Risk Breakdown
+                </h2>
 
-            {riskScore !== undefined ? (
-              <div className="mt-3 flex items-end gap-2">
-                <span className="text-6xl font-bold">{riskScore}</span>
-                <span className="mb-2 text-lg text-slate-400">/100</span>
+                <p className="text-sm text-slate-500">
+                  Input variables used in the prototype risk assessment
+                </p>
               </div>
-            ) : (
-              <p className="mt-5 text-lg font-semibold text-slate-300">
-                Not available
-              </p>
-            )}
 
-            <div className="mt-4 inline-block rounded-full bg-red-500/20 px-4 py-2 text-sm font-semibold text-red-300">
-              {category}
+              <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+
+                {/* RAINFALL */}
+                <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-5">
+                  <div className="mb-3 flex items-center gap-3">
+                    <CloudRain className="h-5 w-5 text-cyan-400" />
+
+                    <span className="text-sm text-slate-400">
+                      Rainfall
+                    </span>
+                  </div>
+
+                  <p className="text-2xl font-bold">
+                    {selectedAreaData.rainfall}
+                  </p>
+
+                  <p className="text-xs text-slate-500">
+                    mm/hr
+                  </p>
+
+                  <div className="mt-4 h-2 rounded-full bg-slate-800">
+                    <div
+                      className="h-full rounded-full bg-cyan-500"
+                      style={{
+                        width: `${Math.min(
+                          (selectedAreaData.rainfall / 80) * 100,
+                          100
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* WATER LEVEL */}
+                <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-5">
+                  <div className="mb-3 flex items-center gap-3">
+                    <Droplets className="h-5 w-5 text-blue-400" />
+
+                    <span className="text-sm text-slate-400">
+                      Water Level
+                    </span>
+                  </div>
+
+                  <p className="text-2xl font-bold">
+                    {selectedAreaData.waterLevel.toFixed(2)}
+                  </p>
+
+                  <p className="text-xs text-slate-500">
+                    meters
+                  </p>
+
+                  <div className="mt-4 h-2 rounded-full bg-slate-800">
+                    <div
+                      className="h-full rounded-full bg-blue-500"
+                      style={{
+                        width: `${Math.min(
+                          (selectedAreaData.waterLevel / 1.5) *
+                            100,
+                          100
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* DRAINAGE */}
+                <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-5">
+                  <div className="mb-3 flex items-center gap-3">
+                    <Gauge className="h-5 w-5 text-orange-400" />
+
+                    <span className="text-sm text-slate-400">
+                      Drainage Utilization
+                    </span>
+                  </div>
+
+                  <p className="text-2xl font-bold">
+                    {selectedAreaData.drainageUtilization}%
+                  </p>
+
+                  <p className="text-xs text-slate-500">
+                    capacity utilization
+                  </p>
+
+                  <div className="mt-4 h-2 rounded-full bg-slate-800">
+                    <div
+                      className="h-full rounded-full bg-orange-500"
+                      style={{
+                        width: `${selectedAreaData.drainageUtilization}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* VULNERABILITY */}
+                <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-5">
+                  <div className="mb-3 flex items-center gap-3">
+                    <ShieldAlert className="h-5 w-5 text-red-400" />
+
+                    <span className="text-sm text-slate-400">
+                      Vulnerability
+                    </span>
+                  </div>
+
+                  <p className="text-2xl font-bold">
+                    {selectedAreaData.vulnerability}%
+                  </p>
+
+                  <p className="text-xs text-slate-500">
+                    area vulnerability index
+                  </p>
+
+                  <div className="mt-4 h-2 rounded-full bg-slate-800">
+                    <div
+                      className="h-full rounded-full bg-red-500"
+                      style={{
+                        width: `${selectedAreaData.vulnerability}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <p className="mt-5 text-xs text-slate-400">
-              DEMO / SIMULATED DATA. Not an operational prediction.
-            </p>
-          </div>
-        </div>
+            {/* RECOMMENDED ACTION */}
+            <div className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-6">
+              <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+                <div className="flex gap-4">
+                  <div className="rounded-xl bg-orange-500/10 p-3">
+                    <AlertTriangle className="h-6 w-6 text-orange-400" />
+                  </div>
 
-        {/* Main Risk Factors */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="rounded-2xl bg-white p-6 shadow-sm lg:col-span-2">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-slate-900">
-                Main Risk Factors
+                  <div>
+                    <h2 className="text-lg font-semibold">
+                      Recommended Prototype Action
+                    </h2>
+
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+                      {selectedAreaData.action}
+                    </p>
+                  </div>
+                </div>
+
+                <span className="shrink-0 rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-xs font-semibold text-orange-300">
+                  AI RECOMMENDATION
+                </span>
+              </div>
+            </div>
+
+            {/* SELECTED AREA DATA */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+              <div className="mb-5 flex items-center gap-3">
+                <MapPin className="h-5 w-5 text-cyan-400" />
+
+                <div>
+                  <h2 className="font-semibold">
+                    Selected Area Data
+                  </h2>
+
+                  <p className="text-xs text-slate-500">
+                    Current prototype inputs for {selectedAreaData.name}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                  <p className="text-xs text-slate-500">
+                    Area
+                  </p>
+
+                  <p className="mt-1 font-semibold">
+                    {selectedAreaData.name}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                  <p className="text-xs text-slate-500">
+                    Risk Score
+                  </p>
+
+                  <p className="mt-1 font-semibold">
+                    {riskScore}/100
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                  <p className="text-xs text-slate-500">
+                    Category
+                  </p>
+
+                  <p className="mt-1 font-semibold">
+                    {category}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                  <p className="text-xs text-slate-500">
+                    Confidence
+                  </p>
+
+                  <p className="mt-1 font-semibold">
+                    {confidence}%
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* PROTOTYPE NOTICE */}
+            <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-5">
+              <div className="flex gap-3">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-yellow-400" />
+
+                <div>
+                  <p className="font-medium text-yellow-300">
+                    Prototype / Demonstration Notice
+                  </p>
+
+                  <p className="mt-1 text-sm leading-6 text-slate-400">
+                    The values shown in this Explainable AI module
+                    are prototype or simulated values for demonstration.
+                    They should not be interpreted as live emergency
+                    measurements or official flood warnings.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* NAVIGATION */}
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => onNavigate?.("gis-map")}
+                className="flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-5 py-3 text-sm font-medium text-cyan-300 transition hover:border-cyan-400 hover:bg-cyan-500/20"
+              >
+                <MapPin className="h-5 w-5" />
+                Open Flood Map
+              </button>
+            </div>
+
+            {/* SYSTEM FLOW */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+              <h2 className="mb-5 text-lg font-semibold">
+                Explainable AI System Flow
               </h2>
 
-              <p className="mt-1 text-sm text-slate-500">
-                Factors contributing to the selected area's prototype
-                assessment.
-              </p>
-            </div>
-
-            <div className="space-y-5">
-              {factors.map((factor) => {
-                const Icon = factor.icon;
-
-                const barWidth =
-                  factor.name === "Water Level"
-                    ? Math.min(factor.value * 50, 100)
-                    : Math.min(factor.value, 100);
-
-                return (
+              <div className="grid gap-3 md:grid-cols-5">
+                {[
+                  "Rainfall Data",
+                  "Water Level",
+                  "Drainage Status",
+                  "Area Vulnerability",
+                  "AI Risk Explanation",
+                ].map((step, index) => (
                   <div
-                    key={factor.name}
-                    className="rounded-xl border border-slate-200 p-4"
+                    key={step}
+                    className="relative rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-center"
                   >
-                    <div className="flex items-start gap-4">
-                      <div className="rounded-lg bg-slate-100 p-3">
-                        <Icon className="h-5 w-5 text-indigo-600" />
-                      </div>
-
-                      <div className="flex-1">
-                        <div className="flex flex-col justify-between gap-2 sm:flex-row">
-                          <div>
-                            <h3 className="font-semibold text-slate-900">
-                              {factor.name}
-                            </h3>
-
-                            <p className="mt-1 text-xs text-slate-500">
-                              {factor.description}
-                            </p>
-                          </div>
-
-                          <div className="text-right">
-                            <p className="text-lg font-bold text-slate-900">
-                              {factor.value}
-                              {factor.unit}
-                            </p>
-
-                            <p className="text-xs font-medium text-red-500">
-                              {factor.impact}
-                            </p>
-
-                            <p className="mt-1 text-xs text-slate-400">
-                              Contribution: {factor.contribution}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-                          <div
-                            className="h-full rounded-full bg-indigo-500"
-                            style={{ width: `${barWidth}%` }}
-                          />
-                        </div>
-                      </div>
+                    <div className="mx-auto mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-cyan-500/10 text-sm font-bold text-cyan-400">
+                      {index + 1}
                     </div>
+
+                    <p className="text-sm text-slate-300">
+                      {step}
+                    </p>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Explanation */}
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-900">
-              Area Explanation
-            </h2>
-
-            <div className="mt-5 rounded-xl bg-indigo-50 p-5">
-              <Brain className="h-6 w-6 text-indigo-600" />
-
-              <p className="mt-4 text-sm leading-6 text-slate-700">
-                {selectedAreaData.explanation}
-              </p>
-
-              <p className="mt-4 text-sm leading-6 text-slate-700">
-                This explanation is generated from the selected area's
-                prototype factors and should not be interpreted as an official
-                flood warning.
-              </p>
+                ))}
+              </div>
             </div>
 
-            <div className="mt-5 rounded-xl border border-slate-200 p-4">
-              <p className="text-sm font-semibold text-slate-900">
-                Recommended Prototype Action
-              </p>
+            {/* QUICK NAVIGATION */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+              <div className="mb-5">
+                <h2 className="text-lg font-semibold">
+                  Quick Navigation
+                </h2>
 
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                {selectedAreaData.recommendation}
-              </p>
-            </div>
+                <p className="text-sm text-slate-500">
+                  Continue analysis using other FloodGuard modules.
+                </p>
+              </div>
 
-            <div className="mt-5 rounded-xl border border-slate-200 p-4">
-              <p className="text-sm font-semibold text-slate-900">
-                Model Confidence
-              </p>
-
-              <p className="mt-2 text-3xl font-bold text-indigo-600">
-                {confidence}%
-              </p>
-
-              <p className="mt-2 text-xs text-slate-500">
-                Demonstration value only. Not a validated operational model.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Existing numerical context */}
-        <div className="rounded-2xl bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-slate-900">
-            Selected Area Data
-          </h2>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Existing prototype measurements where available.
-          </p>
-
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl bg-red-50 p-4">
-              <p className="text-xs text-slate-500">Rainfall</p>
-              <p className="mt-2 text-2xl font-bold text-red-600">
-                {selectedAreaData.rainfall !== undefined
-                  ? `${selectedAreaData.rainfall} mm/hr`
-                  : "Not available"}
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-blue-50 p-4">
-              <p className="text-xs text-slate-500">Water Level</p>
-              <p className="mt-2 text-2xl font-bold text-blue-600">
-                {selectedAreaData.waterLevel !== undefined
-                  ? `${selectedAreaData.waterLevel} m`
-                  : "Not available"}
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-orange-50 p-4">
-              <p className="text-xs text-slate-500">Drainage Pressure</p>
-              <p className="mt-2 text-2xl font-bold text-orange-600">
-                {drainageFactor?.value !== undefined
-                  ? `${drainageFactor.value}%`
-                  : "Not available"}
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-yellow-50 p-4">
-              <p className="text-xs text-slate-500">Terrain Risk</p>
-              <p className="mt-2 text-2xl font-bold text-yellow-600">
-                {elevationFactor?.value !== undefined
-                  ? `${elevationFactor.value}%`
-                  : "Not available"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Risk Breakdown */}
-        <div className="rounded-2xl bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-slate-900">
-            Risk Breakdown
-          </h2>
-
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl bg-red-50 p-4">
-              <p className="text-xs text-slate-500">Rainfall Impact</p>
-              <p className="mt-2 text-2xl font-bold text-red-600">
-                {rainfallFactor?.contribution ?? "--"}
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-orange-50 p-4">
-              <p className="text-xs text-slate-500">Drainage Pressure</p>
-              <p className="mt-2 text-2xl font-bold text-orange-600">
-                {drainageFactor?.contribution ?? "--"}
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-yellow-50 p-4">
-              <p className="text-xs text-slate-500">Terrain Risk</p>
-              <p className="mt-2 text-2xl font-bold text-yellow-600">
-                {elevationFactor?.contribution ?? "--"}
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-indigo-50 p-4">
-              <p className="text-xs text-slate-500">Historical Risk</p>
-              <p className="mt-2 text-2xl font-bold text-indigo-600">
-                {historicalFactor?.contribution ?? "--"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Prototype Notice */}
-        <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <Info className="mt-0.5 h-5 w-5 text-amber-600" />
-
-          <div>
-            <p className="font-semibold text-amber-900">
-              DEMO / SIMULATED DATA
-            </p>
-
-            <p className="mt-1 text-sm text-amber-800">
-              This demonstration uses simulated backend data and
-              area-specific prototype explanations. It is not an official
-              flood warning or a validated production ML model.
-            </p>
-          </div>
-        </div>
-
-        {/* Existing Live Flood Map navigation */}
-        <div className="mt-6 rounded-xl border border-gray-700 bg-gray-900 p-4">
-          <h3 className="text-xs font-bold tracking-widest text-gray-400">
-            LIVE FLOOD MAP
-          </h3>
-
-          <p className="mt-2 text-sm text-gray-300">
-            Explore flood-risk zones and drainage stress in the existing map.
-          </p>
-
-          <button
-            onClick={() =>
-              onNavigate
-                ? onNavigate("Live Flood Map")
-                : window.scrollTo(0, 0)
-            }
-            className="mt-3 text-sm font-semibold text-blue-400 hover:text-blue-300"
-          >
-            [ Open Live Flood Map → ]
-          </button>
-        </div>
-
-        {/* Existing system flow */}
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-slate-900">
-            FloodGuard System Flow
-          </h3>
-
-          <p className="mt-1 text-xs text-slate-500">
-            How data flows to action — prototype overview
-          </p>
-
-          <div className="mt-6">
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-0">
-              {[
-                "Rainfall",
-                "Water Levels",
-                "Drainage",
-                "AI / Risk Engine",
-                "Explainable Risk",
-                "Action Recommendation",
-                "Citizen + Authority Response",
-              ].map((step, i, arr) => (
-                <div
-                  key={step}
-                  className="flex w-full flex-col items-center md:flex-row"
+              <div className="grid gap-3 md:grid-cols-3">
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.("gis-map")}
+                  className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-4 text-left transition hover:border-cyan-500/50 hover:bg-slate-800"
                 >
-                  <div className="w-full rounded-xl bg-slate-900 px-4 py-3 text-center text-xs font-bold tracking-wide text-white md:w-auto md:text-[11px]">
-                    {step}
-                  </div>
+                  <MapPin className="mb-2 h-5 w-5 text-cyan-400" />
 
-                  {i < arr.length - 1 && (
-                    <>
-                      <div className="my-1 text-xl text-slate-400 md:hidden">
-                        ↓
-                      </div>
+                  <p className="font-medium">
+                    GIS Flood Map
+                  </p>
 
-                      <div className="mx-2 hidden text-xl text-slate-400 md:block">
-                        →
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
+                  <p className="mt-1 text-xs text-slate-500">
+                    View spatial flood-risk information
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    onNavigate?.("flood-prediction")
+                  }
+                  className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-4 text-left transition hover:border-cyan-500/50 hover:bg-slate-800"
+                >
+                  <TrendingUp className="mb-2 h-5 w-5 text-cyan-400" />
+
+                  <p className="font-medium">
+                    Flood Prediction
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Review flood prediction information
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.("drainage")}
+                  className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-4 text-left transition hover:border-cyan-500/50 hover:bg-slate-800"
+                >
+                  <Gauge className="mb-2 h-5 w-5 text-cyan-400" />
+
+                  <p className="font-medium">
+                    Drainage
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Inspect drainage capacity and utilization
+                  </p>
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-
-        {/* Existing quick navigation */}
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-xs font-bold tracking-widest text-slate-500">
-            QUICK NAVIGATION
-          </h3>
-
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
-            {[
-              "Live Flood Map",
-              "AI Flood Prediction",
-              "Why This Area Will Flood?",
-              "AI Action Engine",
-              "What-If Simulator",
-              "Flood Digital Twin",
-            ].map((name) => (
-              <button
-                key={name}
-                onClick={() =>
-                  onNavigate
-                    ? onNavigate(name)
-                    : window.scrollTo(0, 0)
-                }
-                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-900 hover:text-white"
-              >
-                [ {name} ]
-              </button>
-            ))}
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
