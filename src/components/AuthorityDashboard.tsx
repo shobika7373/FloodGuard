@@ -13,6 +13,7 @@ import {
   ArrowUpRight,
   X,
 } from "lucide-react";
+
 import {
   LineChart,
   Line,
@@ -64,16 +65,64 @@ const incidents = [
    AREA BUTTON DATA
    These are shown ONLY after clicking the Area button.
 ============================================================ */
+
 const areas = [
   "T. Nagar",
   "Velachery",
   "Adyar",
   "Saidapet",
   "Anna Nagar",
-  "Guindy",
-  "Kodambakkam",
-  "Nungambakkam",
+  "Tambaram",
 ];
+
+/* ============================================================
+   AREA-SPECIFIC KPI DATA
+   Each area has its own dashboard values.
+============================================================ */
+
+const areaKpiData = {
+  "T. Nagar": {
+    criticalZones: 3,
+    highRiskAreas: 8,
+    peopleAtRisk: "24.6K",
+    waterLevel: "1.42 m",
+  },
+
+  Velachery: {
+    criticalZones: 2,
+    highRiskAreas: 6,
+    peopleAtRisk: "18.4K",
+    waterLevel: "1.18 m",
+  },
+
+  Adyar: {
+    criticalZones: 2,
+    highRiskAreas: 5,
+    peopleAtRisk: "16.8K",
+    waterLevel: "1.05 m",
+  },
+
+  Saidapet: {
+    criticalZones: 1,
+    highRiskAreas: 4,
+    peopleAtRisk: "12.3K",
+    waterLevel: "0.82 m",
+  },
+
+  "Anna Nagar": {
+    criticalZones: 1,
+    highRiskAreas: 3,
+    peopleAtRisk: "10.7K",
+    waterLevel: "0.68 m",
+  },
+
+  Tambaram: {
+    criticalZones: 0,
+    highRiskAreas: 2,
+    peopleAtRisk: "8.5K",
+    waterLevel: "0.42 m",
+  },
+};
 
 export default function AuthorityDashboard() {
   const [assistanceRequests, setAssistanceRequests] = useState<any[]>([]);
@@ -81,6 +130,7 @@ export default function AuthorityDashboard() {
   /* ============================================================
      EXISTING ASSISTANCE REQUEST FUNCTIONALITY
   ============================================================ */
+
   useEffect(() => {
     fetch(`${getApiBaseUrl()}/api/assistance-requests`)
       .then((response) => response.json())
@@ -91,6 +141,7 @@ export default function AuthorityDashboard() {
   /* ============================================================
      EXISTING RESPONSE PLAN FUNCTIONALITY
   ============================================================ */
+
   const [showResponsePlan, setShowResponsePlan] = useState(false);
 
   const [reviewedSteps, setReviewedSteps] = useState<boolean[]>(
@@ -98,8 +149,9 @@ export default function AuthorityDashboard() {
   );
 
   /* ============================================================
-     NEW AREA BUTTON FUNCTIONALITY
+     AREA BUTTON FUNCTIONALITY
   ============================================================ */
+
   const [showAreas, setShowAreas] = useState(false);
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
 
@@ -112,22 +164,35 @@ export default function AuthorityDashboard() {
     setSelectedArea(null);
   };
 
+  /* ============================================================
+     SELECTED AREA KPI DATA
+  ============================================================ */
+
+  const selectedKpi = selectedArea
+    ? areaKpiData[selectedArea as keyof typeof areaKpiData]
+    : null;
+
   return (
     <div className="space-y-6">
 
       {/* ========================================================
           EXISTING HEADER
       ========================================================= */}
+
       <div className="rounded-2xl bg-gradient-to-r from-slate-800 to-slate-700 p-6 text-white shadow-lg">
+
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
           <div>
+
             <div className="mb-2 flex items-center gap-2">
+
               <Shield size={24} />
 
               <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
                 DEMO / SIMULATED DATA
               </span>
+
             </div>
 
             <h1 className="text-3xl font-bold">
@@ -138,33 +203,41 @@ export default function AuthorityDashboard() {
               Command-centre view for monitoring flood risk, incidents,
               vulnerable areas and recommended response actions.
             </p>
+
           </div>
 
           <div className="rounded-xl bg-white/10 px-5 py-4 text-center">
+
             <p className="text-xs text-slate-300">
               System Status
             </p>
 
             <div className="mt-1 flex items-center justify-center gap-2">
+
               <span className="h-3 w-3 rounded-full bg-green-400" />
+
               <span className="font-semibold">
                 Operational
               </span>
+
             </div>
+
           </div>
 
         </div>
+
       </div>
 
       {/* ========================================================
-          NEW AREA BUTTON SECTION
-          ONLY THIS SECTION IS NEW
+          AREA BUTTON SECTION
       ========================================================= */}
+
       <div className="relative rounded-2xl border bg-white p-5 shadow-sm">
 
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col items-center gap-4">
 
-          <div>
+          <div className="text-center">
+
             <h2 className="text-lg font-bold text-gray-900">
               Area
             </h2>
@@ -172,23 +245,30 @@ export default function AuthorityDashboard() {
             <p className="text-sm text-gray-500">
               Select an area to view area-specific information
             </p>
+
           </div>
+
+          {/* CENTERED AREA BUTTON */}
 
           <button
             type="button"
             onClick={() => setShowAreas((current) => !current)}
             className="flex min-w-[220px] items-center justify-between gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 text-left shadow-sm transition hover:border-blue-500 hover:bg-blue-50"
           >
+
             <div className="flex items-center gap-3">
 
               <div className="rounded-lg bg-blue-100 p-2">
+
                 <MapPin
                   size={18}
                   className="text-blue-600"
                 />
+
               </div>
 
               <div>
+
                 <p className="text-xs text-gray-500">
                   SELECTED AREA
                 </p>
@@ -196,6 +276,7 @@ export default function AuthorityDashboard() {
                 <p className="text-sm font-semibold text-gray-900">
                   {selectedArea || "Select Area"}
                 </p>
+
               </div>
 
             </div>
@@ -203,23 +284,23 @@ export default function AuthorityDashboard() {
             <span className="text-gray-500">
               {showAreas ? "▲" : "▼"}
             </span>
+
           </button>
 
         </div>
 
         {/* ======================================================
             AREA BUTTONS
-            NOT A SELECT/DROPDOWN.
-            THEY APPEAR ONLY AFTER CLICKING AREA.
         ======================================================= */}
+
         {showAreas && (
           <div className="mt-5 border-t pt-5">
 
-            <p className="mb-3 text-sm font-semibold text-gray-700">
+            <p className="mb-3 text-center text-sm font-semibold text-gray-700">
               Select an area
             </p>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap justify-center gap-3">
 
               {areas.map((area) => (
                 <button
@@ -232,21 +313,27 @@ export default function AuthorityDashboard() {
                       : "border-gray-300 bg-white text-gray-700 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700"
                   }`}
                 >
+
                   <span className="flex items-center gap-2">
+
                     <MapPin size={15} />
+
                     {area}
+
                   </span>
+
                 </button>
               ))}
 
             </div>
+
           </div>
         )}
 
         {/* ======================================================
             SELECTED AREA
-            ONLY SHOWN AFTER USER SELECTS AN AREA.
         ======================================================= */}
+
         {selectedArea && (
           <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4">
 
@@ -255,13 +342,16 @@ export default function AuthorityDashboard() {
               <div className="flex items-center gap-3">
 
                 <div className="rounded-lg bg-blue-100 p-2">
+
                   <MapPin
                     size={20}
                     className="text-blue-600"
                   />
+
                 </div>
 
                 <div>
+
                   <p className="text-xs font-medium uppercase text-blue-600">
                     Selected Area
                   </p>
@@ -269,6 +359,7 @@ export default function AuthorityDashboard() {
                   <p className="text-lg font-bold text-gray-900">
                     {selectedArea}
                   </p>
+
                 </div>
 
               </div>
@@ -286,15 +377,21 @@ export default function AuthorityDashboard() {
 
           </div>
         )}
+
       </div>
 
       {/* ========================================================
-          EXISTING KPI CARDS — UNCHANGED
+          AREA-SPECIFIC KPI CARDS
       ========================================================= */}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
+        {/* Critical Zones */}
+
         <div className="rounded-xl border bg-white p-5 shadow-sm">
+
           <div className="flex items-center justify-between">
+
             <p className="text-sm text-gray-500">
               Critical Zones
             </p>
@@ -303,19 +400,27 @@ export default function AuthorityDashboard() {
               className="text-red-600"
               size={22}
             />
+
           </div>
 
           <p className="mt-2 text-3xl font-bold">
-            3
+            {selectedKpi?.criticalZones ?? "—"}
           </p>
 
           <p className="mt-1 text-xs text-red-600">
-            Immediate attention
+            {selectedArea
+              ? "Immediate attention"
+              : "Select an area"}
           </p>
+
         </div>
 
+        {/* High-Risk Areas */}
+
         <div className="rounded-xl border bg-white p-5 shadow-sm">
+
           <div className="flex items-center justify-between">
+
             <p className="text-sm text-gray-500">
               High-Risk Areas
             </p>
@@ -324,19 +429,27 @@ export default function AuthorityDashboard() {
               className="text-orange-600"
               size={22}
             />
+
           </div>
 
           <p className="mt-2 text-3xl font-bold">
-            8
+            {selectedKpi?.highRiskAreas ?? "—"}
           </p>
 
           <p className="mt-1 text-xs text-orange-600">
-            Under monitoring
+            {selectedArea
+              ? "Under monitoring"
+              : "Select an area"}
           </p>
+
         </div>
 
+        {/* People at Risk */}
+
         <div className="rounded-xl border bg-white p-5 shadow-sm">
+
           <div className="flex items-center justify-between">
+
             <p className="text-sm text-gray-500">
               People at Risk
             </p>
@@ -345,19 +458,27 @@ export default function AuthorityDashboard() {
               className="text-purple-600"
               size={22}
             />
+
           </div>
 
           <p className="mt-2 text-3xl font-bold">
-            24.6K
+            {selectedKpi?.peopleAtRisk ?? "—"}
           </p>
 
           <p className="mt-1 text-xs text-purple-600">
-            Simulated estimate
+            {selectedArea
+              ? "Simulated estimate"
+              : "Select an area"}
           </p>
+
         </div>
 
+        {/* Water Level */}
+
         <div className="rounded-xl border bg-white p-5 shadow-sm">
+
           <div className="flex items-center justify-between">
+
             <p className="text-sm text-gray-500">
               Water Level
             </p>
@@ -366,30 +487,37 @@ export default function AuthorityDashboard() {
               className="text-blue-600"
               size={22}
             />
+
           </div>
 
           <p className="mt-2 text-3xl font-bold">
-            1.42 m
+            {selectedKpi?.waterLevel ?? "—"}
           </p>
 
           <p className="mt-1 text-xs text-blue-600">
-            Rising trend
+            {selectedArea
+              ? "Rising trend"
+              : "Select an area"}
           </p>
+
         </div>
 
       </div>
 
       {/* ========================================================
-          EXISTING MAIN GRID — UNCHANGED
+          EXISTING MAIN GRID
       ========================================================= */}
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
         {/* Risk Trend */}
+
         <div className="rounded-2xl border bg-white p-6 shadow-sm">
 
           <div className="mb-5 flex items-center justify-between">
 
             <div>
+
               <h2 className="text-xl font-bold text-gray-900">
                 Flood Risk Trend
               </h2>
@@ -397,6 +525,7 @@ export default function AuthorityDashboard() {
               <p className="text-sm text-gray-500">
                 Simulated city risk progression
               </p>
+
             </div>
 
             <Activity
@@ -407,10 +536,12 @@ export default function AuthorityDashboard() {
           </div>
 
           <div className="h-64">
+
             <ResponsiveContainer
               width="100%"
               height="100%"
             >
+
               <LineChart data={riskTrend}>
 
                 <CartesianGrid strokeDasharray="3 3" />
@@ -429,20 +560,27 @@ export default function AuthorityDashboard() {
                 />
 
               </LineChart>
+
             </ResponsiveContainer>
+
           </div>
+
         </div>
 
         {/* Critical Decision */}
+
         <div className="rounded-2xl border border-red-200 bg-red-50 p-6 shadow-sm">
 
           <div className="flex items-center gap-3">
 
             <div className="rounded-xl bg-red-100 p-3 text-red-700">
+
               <Siren size={25} />
+
             </div>
 
             <div>
+
               <h2 className="text-xl font-bold text-red-900">
                 Priority Response
               </h2>
@@ -450,6 +588,7 @@ export default function AuthorityDashboard() {
               <p className="text-sm text-red-700">
                 AI-assisted prototype recommendation
               </p>
+
             </div>
 
           </div>
@@ -459,6 +598,7 @@ export default function AuthorityDashboard() {
             <div className="flex items-center justify-between">
 
               <div>
+
                 <p className="text-sm text-gray-500">
                   Priority Area
                 </p>
@@ -466,6 +606,7 @@ export default function AuthorityDashboard() {
                 <p className="text-2xl font-bold text-gray-900">
                   T. Nagar
                 </p>
+
               </div>
 
               <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-bold text-red-700">
@@ -486,12 +627,14 @@ export default function AuthorityDashboard() {
                   key={action}
                   className="flex items-center gap-3 text-sm text-gray-700"
                 >
+
                   <CheckCircle
                     size={17}
                     className="text-red-600"
                   />
 
                   {action}
+
                 </div>
               ))}
 
@@ -501,22 +644,29 @@ export default function AuthorityDashboard() {
               onClick={() => setShowResponsePlan(true)}
               className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700"
             >
+
               Review Response Plan
+
               <ArrowUpRight size={17} />
+
             </button>
 
           </div>
+
         </div>
+
       </div>
 
       {/* ========================================================
-          EXISTING INCIDENT TABLE — UNCHANGED
+          EXISTING INCIDENT TABLE
       ========================================================= */}
+
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
 
         <div className="mb-5 flex items-center justify-between">
 
           <div>
+
             <h2 className="text-xl font-bold text-gray-900">
               Active Flood Incidents
             </h2>
@@ -524,6 +674,7 @@ export default function AuthorityDashboard() {
             <p className="text-sm text-gray-500">
               Prototype incident monitoring view
             </p>
+
           </div>
 
           <Clock
@@ -538,12 +689,27 @@ export default function AuthorityDashboard() {
           <table className="w-full min-w-[700px] text-left">
 
             <thead>
+
               <tr className="border-b text-sm text-gray-500">
-                <th className="px-4 py-3">Area</th>
-                <th className="px-4 py-3">Risk</th>
-                <th className="px-4 py-3">Issue</th>
-                <th className="px-4 py-3">Status</th>
+
+                <th className="px-4 py-3">
+                  Area
+                </th>
+
+                <th className="px-4 py-3">
+                  Risk
+                </th>
+
+                <th className="px-4 py-3">
+                  Issue
+                </th>
+
+                <th className="px-4 py-3">
+                  Status
+                </th>
+
               </tr>
+
             </thead>
 
             <tbody>
@@ -600,14 +766,17 @@ export default function AuthorityDashboard() {
               ))}
 
             </tbody>
+
           </table>
 
         </div>
+
       </div>
 
       {/* ========================================================
-          EXISTING CITIZEN ASSISTANCE REQUESTS — UNCHANGED
+          EXISTING CITIZEN ASSISTANCE REQUESTS
       ========================================================= */}
+
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
 
         <div className="flex items-center gap-3">
@@ -618,6 +787,7 @@ export default function AuthorityDashboard() {
           />
 
           <div>
+
             <h2 className="text-xl font-bold text-gray-900">
               Citizen Assistance Requests
             </h2>
@@ -625,6 +795,7 @@ export default function AuthorityDashboard() {
             <p className="text-sm text-gray-500">
               Prototype requests submitted by citizens
             </p>
+
           </div>
 
         </div>
@@ -639,15 +810,39 @@ export default function AuthorityDashboard() {
             <table className="w-full min-w-[800px] text-left">
 
               <thead>
+
                 <tr className="border-b text-sm text-gray-500">
-                  <th className="px-4 py-3">Request ID</th>
-                  <th className="px-4 py-3">Assistance</th>
-                  <th className="px-4 py-3">Location</th>
-                  <th className="px-4 py-3">People</th>
-                  <th className="px-4 py-3">Priority</th>
-                  <th className="px-4 py-3">Time</th>
-                  <th className="px-4 py-3">Status</th>
+
+                  <th className="px-4 py-3">
+                    Request ID
+                  </th>
+
+                  <th className="px-4 py-3">
+                    Assistance
+                  </th>
+
+                  <th className="px-4 py-3">
+                    Location
+                  </th>
+
+                  <th className="px-4 py-3">
+                    People
+                  </th>
+
+                  <th className="px-4 py-3">
+                    Priority
+                  </th>
+
+                  <th className="px-4 py-3">
+                    Time
+                  </th>
+
+                  <th className="px-4 py-3">
+                    Status
+                  </th>
+
                 </tr>
+
               </thead>
 
               <tbody>
@@ -711,10 +906,13 @@ export default function AuthorityDashboard() {
                                     : item
                                 )
                             );
+
                           }
+
                         }}
                         className="rounded-lg border border-gray-300 px-2 py-1 text-sm"
                       >
+
                         <option value="Submitted">
                           Submitted
                         </option>
@@ -739,6 +937,7 @@ export default function AuthorityDashboard() {
                 ))}
 
               </tbody>
+
             </table>
           )}
 
@@ -751,8 +950,9 @@ export default function AuthorityDashboard() {
       </div>
 
       {/* ========================================================
-          EXISTING OPERATIONAL MODULES — UNCHANGED
+          EXISTING OPERATIONAL MODULES
       ========================================================= */}
+
       <div className="rounded-2xl border bg-gray-50 p-6">
 
         <h2 className="text-xl font-bold text-gray-900">
@@ -762,6 +962,7 @@ export default function AuthorityDashboard() {
         <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
 
           <div className="rounded-xl bg-white p-4">
+
             <CheckCircle
               className="text-green-600"
               size={22}
@@ -774,6 +975,7 @@ export default function AuthorityDashboard() {
             <p className="mt-1 text-sm text-gray-500">
               Flood-risk zones continuously reviewed.
             </p>
+
           </div>
 
           <div className="rounded-xl bg-white p-4">
@@ -811,11 +1013,13 @@ export default function AuthorityDashboard() {
           </div>
 
         </div>
+
       </div>
 
       {/* ========================================================
-          EXISTING DISCLAIMER — UNCHANGED
+          EXISTING DISCLAIMER
       ========================================================= */}
+
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
 
         <p className="text-sm font-semibold text-amber-900">
@@ -833,8 +1037,9 @@ export default function AuthorityDashboard() {
       </div>
 
       {/* ========================================================
-          EXISTING RESPONSE PLAN MODAL — UNCHANGED
+          EXISTING RESPONSE PLAN MODAL
       ========================================================= */}
+
       {showResponsePlan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
 
@@ -941,10 +1146,10 @@ export default function AuthorityDashboard() {
             </div>
 
           </div>
+
         </div>
       )}
 
     </div>
   );
 }
-
