@@ -31,14 +31,24 @@ interface AreaData {
   action: string;
 }
 
+interface BackendFactorObject {
+  factor?: string;
+  value?: number;
+  contribution?: number;
+}
+
 interface BackendResponse {
   area?: string;
   risk_score?: number;
-  category?: "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
+  category?: string;
   confidence?: number;
-  factors?: string[];
+  factors?: string[] | BackendFactorObject[];
 }
 
+/*
+ * Existing prototype area data.
+ * DO NOT remove or replace these values.
+ */
 const AREA_DATA: Record<string, AreaData> = {
   "T. Nagar": {
     name: "T. Nagar",
@@ -133,6 +143,89 @@ const AREA_DATA: Record<string, AreaData> = {
 
 const AREA_NAMES = Object.keys(AREA_DATA);
 
+/*
+ * Convert backend category values such as:
+ * Critical / critical / CRITICAL
+ * into the frontend format.
+ */
+function normalizeCategory(
+  category?: string
+): AreaData["category"] | undefined {
+  if (!category) {
+    return undefined;
+  }
+
+  const normalized = category.trim().toUpperCase();
+
+  switch (normalized) {
+    case "LOW":
+      return "LOW";
+
+    case "MODERATE":
+      return "MODERATE";
+
+    case "HIGH":
+      return "HIGH";
+
+    case "CRITICAL":
+      return "CRITICAL";
+
+    default:
+      return undefined;
+  }
+}
+
+/*
+ * Convert backend factors into the readable strings
+ * already used by the existing UI.
+ */
+function normalizeFactors(
+  factors?: string[] | BackendFactorObject[]
+): string[] | undefined {
+  if (!Array.isArray(factors)) {
+    return undefined;
+  }
+
+  if (factors.length === 0) {
+    return [];
+  }
+
+  /*
+   * Existing frontend/backend string format.
+   */
+  if (typeof factors[0] === "string") {
+    return factors as string[];
+  }
+
+  /*
+   * Backend object format:
+   * {
+   *   factor: "Heavy Rainfall",
+   *   value: 78,
+   *   contribution: 30
+   * }
+   */
+  return (factors as BackendFactorObject[])
+    .filter((factor) => factor && factor.factor)
+    .map((factor) => {
+      const name = factor.factor ?? "Risk Factor";
+
+      if (name.toLowerCase().includes("water")) {
+        return `${name}: ${
+          typeof factor.value === "number"
+            ? factor.value.toFixed(2)
+            : "--"
+        } m`;
+      }
+
+      return `${name}: ${
+        typeof factor.value === "number"
+          ? factor.value
+          : "--"
+      }`;
+    });
+}
+
 function getRiskClass(category: AreaData["category"]) {
   switch (category) {
     case "CRITICAL":
@@ -188,20 +281,27 @@ export default function ExplainableAI({
   const [showAreas, setShowAreas] = useState(false);
 
   const [riskScore, setRiskScore] = useState<number | null>(null);
+
   const [category, setCategory] =
     useState<AreaData["category"] | null>(null);
-  const [confidence, setConfidence] = useState<number | null>(null);
+
+  const [confidence, setConfidence] =
+    useState<number | null>(null);
 
   const [factors, setFactors] = useState<string[]>([]);
 
-  const [backendLoading, setBackendLoading] = useState(false);
-  const [backendError, setBackendError] = useState("");
+  const [backendLoading, setBackendLoading] =
+    useState(false);
 
-  const selectedAreaData = area ? AREA_DATA[area] : null;
+  const [backendError, setBackendError] =
+    useState("");
+
+  const selectedAreaData =
+    area ? AREA_DATA[area] : null;
 
   /*
-   * Load Explainable AI data from backend
-   * whenever an area is selected.
+   * Load backend Explainable AI data
+   * after an area has been selected.
    */
   const loadBackendData = useCallback(
     async (selectedArea: string) => {
@@ -209,28 +309,63 @@ export default function ExplainableAI({
         setBackendLoading(true);
         setBackendError("");
 
-        const response: BackendResponse =
-          await getExplainableAI();
+        const response =
+          (await getExplainableAI()) as BackendResponse;
 
         /*
-         * Apply backend values only when the backend response
-         * belongs to the selected area.
+         * IMPORTANT:
+         *
+         * Backend data is applied ONLY if it belongs
+         * to the currently selected area.
+         *
+         * This safeguard is intentionally preserved.
          */
         if (response?.area === selectedArea) {
-          if (typeof response.risk_score === "number") {
+          /*
+           * Backend risk score
+           */
+          if (
+            typeof response.risk_score === "number"
+          ) {
             setRiskScore(response.risk_score);
           }
 
-          if (response.category) {
-            setCategory(response.category);
+          /*
+           * Backend category
+           *
+           * Handles:
+           * Critical
+           * CRITICAL
+           * critical
+           * etc.
+           */
+          const normalizedCategory =
+            normalizeCategory(response.category);
+
+          if (normalizedCategory) {
+            setCategory(normalizedCategory);
           }
 
-          if (typeof response.confidence === "number") {
+          /*
+           * Backend confidence
+           */
+          if (
+            typeof response.confidence === "number"
+          ) {
             setConfidence(response.confidence);
           }
 
-          if (Array.isArray(response.factors)) {
-            setFactors(response.factors);
+          /*
+           * Backend factors
+           */
+          const normalizedFactors =
+            normalizeFactors(response.factors);
+
+          if (
+            normalizedFactors &&
+            normalizedFactors.length > 0
+          ) {
+            setFactors(normalizedFactors);
           }
         }
       } catch (error) {
@@ -239,6 +374,10 @@ export default function ExplainableAI({
           error
         );
 
+        /*
+         * The selected area's prototype values remain
+         * visible even if the backend is unavailable.
+         */
         setBackendError(
           "Backend data unavailable. Showing prototype area data."
         );
@@ -250,8 +389,8 @@ export default function ExplainableAI({
   );
 
   /*
-   * Automatically load backend information
-   * after an area has been selected.
+   * Whenever the selected area changes,
+   * request backend Explainable AI information.
    */
   useEffect(() => {
     if (!area) {
@@ -262,7 +401,11 @@ export default function ExplainableAI({
   }, [area, loadBackendData]);
 
   /*
-   * Select an area from the button list.
+   * Select an area.
+   *
+   * Prototype values are loaded immediately so the
+   * response appears as soon as the user selects
+   * an area.
    */
   const selectArea = (selectedArea: string) => {
     const data = AREA_DATA[selectedArea];
@@ -271,17 +414,26 @@ export default function ExplainableAI({
       return;
     }
 
+    /*
+     * Set selected area.
+     */
     setArea(selectedArea);
+
+    /*
+     * Close the area list.
+     */
     setShowAreas(false);
 
     /*
-     * Show local prototype values immediately.
-     * Backend values can update them after the API call.
+     * Immediately show this area's prototype response.
      */
     setRiskScore(data.riskScore);
     setCategory(data.category);
     setConfidence(data.confidence);
 
+    /*
+     * Existing readable risk factors.
+     */
     setFactors([
       `Rainfall intensity: ${data.rainfall} mm/hr`,
       `Drainage utilization: ${data.drainageUtilization}%`,
@@ -289,6 +441,9 @@ export default function ExplainableAI({
       `Area vulnerability: ${data.vulnerability}%`,
     ]);
 
+    /*
+     * Clear previous backend error.
+     */
     setBackendError("");
   };
 
@@ -326,6 +481,7 @@ export default function ExplainableAI({
         {/* AREA SELECTION */}
         <div className="flex justify-center">
           <div className="w-full max-w-xl rounded-2xl border border-slate-800 bg-slate-900/70 p-6 text-center">
+
             <div className="mb-3 flex items-center justify-center gap-2">
               <MapPin className="h-5 w-5 text-cyan-400" />
 
@@ -335,13 +491,16 @@ export default function ExplainableAI({
             </div>
 
             <p className="mb-5 text-sm text-slate-400">
-              Select an area to view its explainable flood-risk analysis.
+              Select an area to view its explainable
+              flood-risk analysis.
             </p>
 
-            {/* MAIN SELECT BUTTON */}
+            {/* CENTER SELECTED AREA BUTTON */}
             <button
               type="button"
-              onClick={() => setShowAreas((previous) => !previous)}
+              onClick={() =>
+                setShowAreas((previous) => !previous)
+              }
               className="mx-auto flex min-w-[240px] items-center justify-between gap-4 rounded-xl border border-cyan-500/40 bg-slate-950 px-5 py-3 text-left transition hover:border-cyan-400 hover:bg-slate-800"
             >
               <span className="flex items-center gap-3">
@@ -372,7 +531,9 @@ export default function ExplainableAI({
                   <button
                     key={areaName}
                     type="button"
-                    onClick={() => selectArea(areaName)}
+                    onClick={() =>
+                      selectArea(areaName)
+                    }
                     className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${
                       area === areaName
                         ? "border-cyan-400 bg-cyan-500/10 text-cyan-300"
@@ -387,7 +548,7 @@ export default function ExplainableAI({
           </div>
         </div>
 
-        {/* NOTHING ELSE IS SHOWN UNTIL AREA IS SELECTED */}
+        {/* NOTHING ELSE UNTIL AREA IS SELECTED */}
         {area && selectedAreaData && (
           <>
             {/* BACKEND STATUS */}
@@ -457,11 +618,15 @@ export default function ExplainableAI({
                 <div className="mt-5 h-3 overflow-hidden rounded-full bg-slate-800">
                   <div
                     className={`h-full rounded-full transition-all ${getRiskBarClass(
-                      category ?? selectedAreaData.category
+                      category ??
+                        selectedAreaData.category
                     )}`}
                     style={{
                       width: `${Math.min(
-                        Math.max(riskScore ?? 0, 0),
+                        Math.max(
+                          riskScore ?? 0,
+                          0
+                        ),
                         100
                       )}%`,
                     }}
@@ -477,16 +642,19 @@ export default function ExplainableAI({
 
                 <div
                   className={`mt-5 flex items-center gap-4 rounded-xl border p-5 ${getRiskClass(
-                    category ?? selectedAreaData.category
+                    category ??
+                      selectedAreaData.category
                   )}`}
                 >
                   {getRiskIcon(
-                    category ?? selectedAreaData.category
+                    category ??
+                      selectedAreaData.category
                   )}
 
                   <div>
                     <p className="text-2xl font-bold">
-                      {category ?? selectedAreaData.category}
+                      {category ??
+                        selectedAreaData.category}
                     </p>
 
                     <p className="text-xs opacity-80">
@@ -521,7 +689,10 @@ export default function ExplainableAI({
                     className="h-full rounded-full bg-purple-500"
                     style={{
                       width: `${Math.min(
-                        Math.max(confidence ?? 0, 0),
+                        Math.max(
+                          confidence ?? 0,
+                          0
+                        ),
                         100
                       )}%`,
                     }}
@@ -552,20 +723,22 @@ export default function ExplainableAI({
                 </div>
 
                 <div className="space-y-3">
-                  {factors.map((factor, index) => (
-                    <div
-                      key={`${factor}-${index}`}
-                      className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-950/60 p-4"
-                    >
-                      <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-500/10 text-xs font-bold text-cyan-400">
-                        {index + 1}
-                      </div>
+                  {factors.map(
+                    (factor, index) => (
+                      <div
+                        key={`${factor}-${index}`}
+                        className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-950/60 p-4"
+                      >
+                        <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-500/10 text-xs font-bold text-cyan-400">
+                          {index + 1}
+                        </div>
 
-                      <p className="text-sm text-slate-300">
-                        {factor}
-                      </p>
-                    </div>
-                  ))}
+                        <p className="text-sm text-slate-300">
+                          {factor}
+                        </p>
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
 
@@ -603,7 +776,8 @@ export default function ExplainableAI({
                 </h2>
 
                 <p className="text-sm text-slate-500">
-                  Input variables used in the prototype risk assessment
+                  Input variables used in the prototype
+                  risk assessment
                 </p>
               </div>
 
@@ -632,7 +806,9 @@ export default function ExplainableAI({
                       className="h-full rounded-full bg-cyan-500"
                       style={{
                         width: `${Math.min(
-                          (selectedAreaData.rainfall / 80) * 100,
+                          (selectedAreaData.rainfall /
+                            80) *
+                            100,
                           100
                         )}%`,
                       }}
@@ -651,7 +827,9 @@ export default function ExplainableAI({
                   </div>
 
                   <p className="text-2xl font-bold">
-                    {selectedAreaData.waterLevel.toFixed(2)}
+                    {selectedAreaData.waterLevel.toFixed(
+                      2
+                    )}
                   </p>
 
                   <p className="text-xs text-slate-500">
@@ -663,7 +841,8 @@ export default function ExplainableAI({
                       className="h-full rounded-full bg-blue-500"
                       style={{
                         width: `${Math.min(
-                          (selectedAreaData.waterLevel / 1.5) *
+                          (selectedAreaData.waterLevel /
+                            1.5) *
                             100,
                           100
                         )}%`,
@@ -683,7 +862,9 @@ export default function ExplainableAI({
                   </div>
 
                   <p className="text-2xl font-bold">
-                    {selectedAreaData.drainageUtilization}%
+                    {
+                      selectedAreaData.drainageUtilization
+                    }%
                   </p>
 
                   <p className="text-xs text-slate-500">
@@ -766,7 +947,8 @@ export default function ExplainableAI({
                   </h2>
 
                   <p className="text-xs text-slate-500">
-                    Current prototype inputs for {selectedAreaData.name}
+                    Current prototype inputs for{" "}
+                    {selectedAreaData.name}
                   </p>
                 </div>
               </div>
@@ -825,10 +1007,11 @@ export default function ExplainableAI({
                   </p>
 
                   <p className="mt-1 text-sm leading-6 text-slate-400">
-                    The values shown in this Explainable AI module
-                    are prototype or simulated values for demonstration.
-                    They should not be interpreted as live emergency
-                    measurements or official flood warnings.
+                    The values shown in this Explainable AI
+                    module are prototype or simulated values
+                    for demonstration. They should not be
+                    interpreted as live emergency measurements
+                    or official flood warnings.
                   </p>
                 </div>
               </div>
@@ -838,7 +1021,9 @@ export default function ExplainableAI({
             <div className="flex justify-center">
               <button
                 type="button"
-                onClick={() => onNavigate?.("gis-map")}
+                onClick={() =>
+                  onNavigate?.("gis-map")
+                }
                 className="flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-5 py-3 text-sm font-medium text-cyan-300 transition hover:border-cyan-400 hover:bg-cyan-500/20"
               >
                 <MapPin className="h-5 w-5" />
@@ -884,14 +1069,18 @@ export default function ExplainableAI({
                 </h2>
 
                 <p className="text-sm text-slate-500">
-                  Continue analysis using other FloodGuard modules.
+                  Continue analysis using other FloodGuard
+                  modules.
                 </p>
               </div>
 
               <div className="grid gap-3 md:grid-cols-3">
+
                 <button
                   type="button"
-                  onClick={() => onNavigate?.("gis-map")}
+                  onClick={() =>
+                    onNavigate?.("gis-map")
+                  }
                   className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-4 text-left transition hover:border-cyan-500/50 hover:bg-slate-800"
                 >
                   <MapPin className="mb-2 h-5 w-5 text-cyan-400" />
@@ -908,7 +1097,9 @@ export default function ExplainableAI({
                 <button
                   type="button"
                   onClick={() =>
-                    onNavigate?.("flood-prediction")
+                    onNavigate?.(
+                      "flood-prediction"
+                    )
                   }
                   className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-4 text-left transition hover:border-cyan-500/50 hover:bg-slate-800"
                 >
@@ -925,7 +1116,9 @@ export default function ExplainableAI({
 
                 <button
                   type="button"
-                  onClick={() => onNavigate?.("drainage")}
+                  onClick={() =>
+                    onNavigate?.("drainage")
+                  }
                   className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-4 text-left transition hover:border-cyan-500/50 hover:bg-slate-800"
                 >
                   <Gauge className="mb-2 h-5 w-5 text-cyan-400" />
@@ -938,6 +1131,7 @@ export default function ExplainableAI({
                     Inspect drainage capacity and utilization
                   </p>
                 </button>
+
               </div>
             </div>
           </>
