@@ -3,3 +3,6 @@ dist/
 __pycache__/
 *.pyc
 .env
+
+vapid_private.pem
+vapid_public.pem

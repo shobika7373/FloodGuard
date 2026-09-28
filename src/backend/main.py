@@ -1,5 +1,22 @@
-from fastapi import FastAPI
+from fastapi import Body,FastAPI, File, HTTPException, UploadFile
+from .push_notifications import (
+    add_subscription,
+    send_to_all_subscribers,
+    subscriptions,
+)
 from fastapi.middleware.cors import CORSMiddleware
+
+from .models.flood import FloodRiskInput, FloodRiskResponse
+from .services.risk_engine import calculate_flood_risk
+from .services.photo_analysis import analyze_photo
+from .data.demo_scenarios import get_demo_scenario
+from src.backend.models.assistance import AssistanceRequest
+from src.backend.services.assistance_service import (
+    create_assistance_request,
+    get_assistance_requests,
+    update_assistance_status,
+)
+
 
 # ---------------------------------------------------------
 # FLOODGUARD BACKEND
@@ -11,6 +28,7 @@ app = FastAPI(
     description="Chennai Urban Flood Nowcasting - Prototype Backend",
     version="1.0.0",
 )
+
 
 # ---------------------------------------------------------
 # CORS
@@ -109,6 +127,7 @@ def get_water_levels():
 
 # ---------------------------------------------------------
 # FLOOD RISK
+# Existing frontend endpoint
 # ---------------------------------------------------------
 
 @app.get("/api/flood-risk")
@@ -138,6 +157,25 @@ def get_flood_risk():
             },
         ],
     }
+
+
+# ---------------------------------------------------------
+# FLOOD RISK ENGINE
+# New reusable Risk Engine endpoint
+# ---------------------------------------------------------
+
+@app.post("/api/flood-risk/calculate", response_model=FloodRiskResponse)
+def calculate_risk(data: FloodRiskInput):
+    return calculate_flood_risk(data)
+
+
+# ---------------------------------------------------------
+# DEMO SCENARIO
+# ---------------------------------------------------------
+
+@app.get("/api/demo-scenario")
+def demo_scenario():
+    return get_demo_scenario()
 
 
 # ---------------------------------------------------------
@@ -406,4 +444,117 @@ def get_dashboard():
         "active_alerts": 3,
 
         "system_status": "Prototype Operational",
+    }
+@app.post("/api/assistance-requests")
+def submit_assistance_request(request: AssistanceRequest):
+    return create_assistance_request(request)
+
+
+@app.get("/api/assistance-requests")
+def list_assistance_requests():
+    return get_assistance_requests()
+
+
+@app.patch("/api/assistance-requests/{request_id}/status")
+def change_assistance_status(request_id: str, status: str):
+    updated_request = update_assistance_status(request_id, status)
+
+    if updated_request is None:
+        return {"error": "Assistance request not found"}
+
+    return updated_request
+
+
+@app.post("/api/photo-water-depth")
+async def photo_water_depth(file: UploadFile = File(...)):
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=400,
+            detail="Please upload a valid image file.",
+        )
+
+    image_bytes = await file.read()
+
+    try:
+        return analyze_photo(image_bytes, file.filename)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+@app.get("/api/notifications/status")
+def notification_status():
+    return {
+        "success": True,
+        "service": "FloodGuard Push Notifications",
+        "status": "ready",
+        "subscribers": len(subscriptions),
+    }
+
+
+@app.post("/api/notifications/subscribe")
+def subscribe_to_notifications(
+    subscription: dict = Body(...),
+):
+    try:
+        add_subscription(subscription)
+
+        return {
+            "success": True,
+            "message": "Device subscribed to FloodGuard notifications",
+        }
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        )
+@app.post("/api/notifications/alert")
+def prototype_alert(payload: dict = Body(...)):
+    area = payload.get("area", "Selected area")
+    risk = payload.get("risk", "DEMO")
+    risk_score = payload.get("riskScore")
+    action = payload.get("action", "Review the selected prototype action")
+    reason = payload.get("reason", "Simulated flood-risk conditions")
+
+    message_lines = [
+        "PROTOTYPE / SIMULATED ALERT",
+        f"Affected area: {area}",
+        f"Risk: {risk}",
+    ]
+
+    if risk_score is not None:
+        message_lines.append(f"Risk score: {risk_score}/100")
+
+    message_lines.extend([
+        f"Why: {reason}",
+        f"Recommended action: {action}",
+    ])
+
+    sent_count = send_to_all_subscribers(
+        title="FloodGuard Prototype Alert",
+        message="\\n".join(message_lines),
+    )
+
+    return {
+        "success": True,
+        "message": "Prototype notification processed",
+        "sent_count": sent_count,
+    }
+
+
+@app.post("/api/notifications/test")
+def test_notification():
+    sent_count = send_to_all_subscribers(
+        title="FloodGuard Prototype Alert",
+        message=(
+            "PROTOTYPE / SIMULATED ALERT\n"
+            "Affected area: T. Nagar\n"
+            "Risk: HIGH\n"
+            "Risk score: 82/100\n"
+            "Recommended action: Inspect drainage and issue warning"
+        ),
+    )
+
+    return {
+        "success": True,
+        "message": "Prototype notification sent",
+        "sent_count": sent_count,
     }

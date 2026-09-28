@@ -1,4 +1,5 @@
-import {
+import { useState } from "react";
+import{
   Users,
   MapPin,
   Camera,
@@ -9,7 +10,7 @@ import {
   FileText,
 } from "lucide-react";
 
-const reports = [
+const initialReports = [
   {
     id: "RPT-1042",
     location: "T. Nagar",
@@ -49,6 +50,89 @@ const reports = [
 ];
 
 export default function CommunityReports() {
+  const [reports, setReports] = useState(initialReports);
+
+  const [showForm, setShowForm] = useState(false);
+
+  const [location, setLocation] = useState("");
+  const [reportType, setReportType] = useState("");
+  const [waterDepth, setWaterDepth] = useState("");
+  const [description, setDescription] = useState("");
+
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState("");
+
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [submittedReport, setSubmittedReport] = useState<any>(null);
+  const handlePhotoChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      setPhoto(null);
+      setPhotoPreview("");
+      return;
+    }
+
+    setPhoto(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
+
+  const handleSubmit = () => {
+    setError("");
+    setSuccess("");
+
+    if (!location.trim()) {
+      setError("Please enter the area/location.");
+      return;
+    }
+
+    if (!reportType) {
+      setError("Please select a report type.");
+      return;
+    }
+
+    if (!waterDepth) {
+      setError("Please select the estimated water depth.");
+      return;
+    }
+
+    if (!description.trim()) {
+      setError("Please enter a description.");
+      return;
+    }
+
+    const reportId = `FR-DEMO-${String(reports.length + 1).padStart(3, "0")}`;
+
+    const newReport = {
+      id: reportId,
+      location: location.trim(),
+      category: reportType,
+      severity: "Demo",
+      time: new Date().toLocaleString(),
+      status: "DEMO SUBMITTED",
+      description: description.trim(),
+      waterDepth,
+      photoAttached: Boolean(photo),
+    };
+
+    setReports((previousReports) => [
+      newReport,
+      ...previousReports,
+    ]);
+
+    setSubmittedReport(newReport);
+    setSuccess("Demo report submitted successfully.");
+
+    setLocation("");
+    setReportType("");
+    setWaterDepth("");
+    setDescription("");
+    setPhoto(null);
+    setPhotoPreview("");
+  };
   return (
     <div className="space-y-6">
 
@@ -134,7 +218,7 @@ export default function CommunityReports() {
 
       </div>
 
-      {/* Submit Report */}
+      {/* Submit Demo Report */}
       <div className="rounded-xl border border-blue-200 bg-blue-50 p-5">
 
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -147,22 +231,246 @@ export default function CommunityReports() {
 
             <div>
               <h2 className="font-semibold text-blue-900">
-                Citizen Flood Report
+                Submit Demo Report
               </h2>
 
               <p className="mt-1 text-sm text-blue-800">
-                Citizens can report flooding, waterlogging, drain overflow
-                and road conditions with location and photos.
+                Submit a simulated citizen observation for the FloodGuard
+                prototype workflow.
               </p>
             </div>
 
           </div>
 
-          <button className="w-fit rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-            Submit Demo Report
+          <button
+            onClick={() => {
+              setShowForm(!showForm);
+              setError("");
+              setSuccess("");
+            }}
+            className="w-fit rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            {showForm ? "Close Form" : "Submit Demo Report"}
           </button>
 
         </div>
+
+        {/* Demo Notice */}
+        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
+          DEMO MODE — Reports submitted here are simulated prototype reports
+          and are not sent to emergency authorities.
+        </div>
+
+        {showForm && (
+          <div className="mt-5 rounded-xl border border-slate-200 bg-white p-5">
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+
+              {/* Location */}
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-slate-700">
+                  Area / Location *
+                </label>
+
+                <input
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Example: Velachery"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </div>
+
+              {/* Report Type */}
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-slate-700">
+                  Report Type *
+                </label>
+
+                <select
+                  value={reportType}
+                  onChange={(e) => setReportType(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                >
+                  <option value="">Select report type</option>
+                  <option value="Road Flooding">Road Flooding</option>
+                  <option value="Waterlogging">Waterlogging</option>
+                  <option value="Drainage Blockage">
+                    Drainage Blockage
+                  </option>
+                  <option value="Rising Water Level">
+                    Rising Water Level
+                  </option>
+                  <option value="Flooded Building">
+                    Flooded Building
+                  </option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              {/* Water Depth */}
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-slate-700">
+                  Estimated Water Depth *
+                </label>
+
+                <select
+                  value={waterDepth}
+                  onChange={(e) => setWaterDepth(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                >
+                  <option value="">Select water depth</option>
+                  <option value="Less than 15 cm">
+                    Less than 15 cm
+                  </option>
+                  <option value="15–30 cm">15–30 cm</option>
+                  <option value="30–60 cm">30–60 cm</option>
+                  <option value="60–90 cm">60–90 cm</option>
+                  <option value="More than 90 cm">
+                    More than 90 cm
+                  </option>
+                  <option value="Unknown">Unknown</option>
+                </select>
+
+                <p className="mt-1 text-xs text-slate-500">
+                  Citizen-estimated value. Not measured by an actual sensor.
+                </p>
+              </div>
+
+              {/* Photo */}
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-slate-700">
+                  Photo (Optional)
+                </label>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                />
+
+                {photo && (
+                  <p className="mt-2 text-xs text-green-600">
+                    Photo attached: {photo.name}
+                  </p>
+                )}
+              </div>
+
+            </div>
+
+            {/* Description */}
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-semibold text-slate-700">
+                Description *
+              </label>
+
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe the observed flood condition..."
+                rows={4}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+              />
+            </div>
+
+            {/* Photo Preview */}
+            {photoPreview && (
+              <div className="mt-4">
+                <p className="mb-2 text-sm font-semibold text-slate-700">
+                  Photo Preview
+                </p>
+
+                <img
+                  src={photoPreview}
+                  alt="Demo report preview"
+                  className="max-h-48 rounded-lg border border-slate-200 object-cover"
+                />
+
+                <p className="mt-2 text-xs text-slate-500">
+                  Photo is shown locally for this prototype. It is not
+                  uploaded to cloud storage or analyzed by AI.
+                </p>
+              </div>
+            )}
+
+            {/* Error */}
+            {error && (
+              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            {/* Success */}
+            {success && submittedReport && (
+              <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4">
+
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+
+                  <p className="font-semibold text-green-800">
+                    {success}
+                  </p>
+                </div>
+
+                <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-green-900 md:grid-cols-2">
+
+                  <p>
+                    <strong>Report ID:</strong>{" "}
+                    {submittedReport.id}
+                  </p>
+
+                  <p>
+                    <strong>Area:</strong>{" "}
+                    {submittedReport.location}
+                  </p>
+
+                  <p>
+                    <strong>Report Type:</strong>{" "}
+                    {submittedReport.category}
+                  </p>
+
+                  <p>
+                    <strong>Water Depth:</strong>{" "}
+                    {submittedReport.waterDepth}
+                  </p>
+
+                  <p>
+                    <strong>Status:</strong>{" "}
+                    {submittedReport.status}
+                  </p>
+
+                  <p>
+                    <strong>Photo:</strong>{" "}
+                    {submittedReport.photoAttached
+                      ? "Attached"
+                      : "Not attached"}
+                  </p>
+
+                  <p className="md:col-span-2">
+                    <strong>Timestamp:</strong>{" "}
+                    {submittedReport.time}
+                  </p>
+
+                </div>
+
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <div className="mt-5 flex justify-end">
+
+              <button
+                onClick={handleSubmit}
+                className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                Submit Demo Report
+              </button>
+
+            </div>
+
+          </div>
+        )}
 
       </div>
 
@@ -300,15 +608,17 @@ export default function CommunityReports() {
 
                   <td className="px-5 py-4">
 
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        report.severity === "Critical"
-                          ? "bg-red-100 text-red-700"
-                          : report.severity === "High"
-                          ? "bg-orange-100 text-orange-700"
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}
-                    >
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+  report.severity === "Critical"
+    ? "bg-red-100 text-red-700"
+    : report.severity === "High"
+    ? "bg-orange-100 text-orange-700"
+    : report.severity === "Moderate"
+    ? "bg-yellow-100 text-yellow-700"
+    : "bg-blue-100 text-blue-700"
+}`}
+>
                       {report.severity}
                     </span>
 
@@ -352,7 +662,12 @@ export default function CommunityReports() {
                         Resolved
                       </span>
                     )}
-
+                    {report.status === "DEMO SUBMITTED" && (
+  <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+    <CheckCircle className="h-3 w-3" />
+    Demo Submitted
+  </span>
+)}
                   </td>
 
                   <td className="px-5 py-4">

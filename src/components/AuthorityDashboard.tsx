@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { getApiBaseUrl } from "../services/api";
 import {
   Shield,
   AlertTriangle,
@@ -9,7 +11,9 @@ import {
   Clock,
   Siren,
   ArrowUpRight,
+  X,
 } from "lucide-react";
+
 import {
   LineChart,
   Line,
@@ -57,18 +61,257 @@ const incidents = [
   },
 ];
 
+/* ============================================================
+   AREA BUTTON DATA
+   These are shown ONLY after clicking the Area button.
+============================================================ */
+
+const areas = [
+  "T. Nagar",
+  "Velachery",
+  "Adyar",
+  "Saidapet",
+  "Anna Nagar",
+  "Tambaram",
+];
+
+/* ============================================================
+   AREA-SPECIFIC KPI DATA
+   Each area has its own dashboard values.
+============================================================ */
+
+const areaKpiData = {
+  "T. Nagar": {
+    criticalZones: 3,
+    highRiskAreas: 8,
+    peopleAtRisk: "24.6K",
+    waterLevel: "1.42 m",
+  },
+
+  Velachery: {
+    criticalZones: 2,
+    highRiskAreas: 6,
+    peopleAtRisk: "18.4K",
+    waterLevel: "1.18 m",
+  },
+
+  Adyar: {
+    criticalZones: 2,
+    highRiskAreas: 5,
+    peopleAtRisk: "16.8K",
+    waterLevel: "1.05 m",
+  },
+
+  Saidapet: {
+    criticalZones: 1,
+    highRiskAreas: 4,
+    peopleAtRisk: "12.3K",
+    waterLevel: "0.82 m",
+  },
+
+  "Anna Nagar": {
+    criticalZones: 1,
+    highRiskAreas: 3,
+    peopleAtRisk: "10.7K",
+    waterLevel: "0.68 m",
+  },
+
+  Tambaram: {
+    criticalZones: 0,
+    highRiskAreas: 2,
+    peopleAtRisk: "8.5K",
+    waterLevel: "0.42 m",
+  },
+};
+
+const responsePlanData = {
+  "T. Nagar": {
+    risk: "CRITICAL",
+    priority: "IMMEDIATE RESPONSE",
+    focus: "Rapid water accumulation and drainage pressure",
+    actions: [
+      "Deploy field response teams to critical flood-prone locations.",
+      "Inspect major storm-water drains for possible blockage or reduced flow.",
+      "Monitor rapid water-level increases on low-lying roads and junctions.",
+      "Review emergency access routes and evacuation readiness.",
+      "Review citizen assistance requests originating from T. Nagar.",
+    ],
+    monitoringParameters: [
+      "Water-level increase",
+      "Drainage blockage",
+      "Road accessibility",
+      "Citizen assistance requests",
+    ],
+  },
+
+  Velachery: {
+    risk: "HIGH",
+    priority: "HIGH-PRIORITY RESPONSE",
+    focus: "Drainage capacity and increasing water accumulation",
+    actions: [
+      "Inspect drainage channels around flood-sensitive locations.",
+      "Check whether drainage capacity is being exceeded or reduced by blockage.",
+      "Monitor water accumulation around low-lying roads and residential areas.",
+      "Deploy field personnel to verify reported drainage and flooding conditions.",
+      "Review citizen assistance requests and prioritize verified cases.",
+    ],
+    monitoringParameters: [
+      "Drainage utilization",
+      "Water accumulation",
+      "Low-lying roads",
+      "Citizen reports",
+    ],
+  },
+
+  Adyar: {
+    risk: "HIGH",
+    priority: "HIGH-PRIORITY MONITORING",
+    focus: "Rising water level and drainage conditions",
+    actions: [
+      "Monitor water-level changes across flood-sensitive locations.",
+      "Inspect drainage outlets and nearby water-flow paths.",
+      "Verify reported flooding conditions through field personnel.",
+      "Review vulnerable locations and nearby citizen assistance requests.",
+      "Continue monitoring and escalate if the risk level increases.",
+    ],
+    monitoringParameters: [
+      "Water-level trend",
+      "Drainage outlet condition",
+      "Flooded locations",
+      "Vulnerable locations",
+    ],
+  },
+
+  Saidapet: {
+    risk: "MODERATE",
+    priority: "PREVENTIVE RESPONSE",
+    focus: "Low-lying road flooding and local drainage",
+    actions: [
+      "Inspect identified low-lying road sections.",
+      "Monitor local storm-water drainage performance.",
+      "Verify citizen-reported flooding conditions.",
+      "Prepare field response resources if water level starts increasing.",
+      "Continue periodic flood-risk monitoring during rainfall.",
+    ],
+    monitoringParameters: [
+      "Low-lying roads",
+      "Local drainage",
+      "Water accumulation",
+      "Citizen reports",
+    ],
+  },
+
+  "Anna Nagar": {
+    risk: "MODERATE",
+    priority: "PREVENTIVE MONITORING",
+    focus: "Localized water accumulation",
+    actions: [
+      "Monitor flood-sensitive locations.",
+      "Check local drainage flow conditions.",
+      "Review incoming citizen reports for the selected area.",
+      "Verify any increase in localized water accumulation.",
+      "Keep response personnel ready if the risk level increases.",
+    ],
+    monitoringParameters: [
+      "Localized accumulation",
+      "Drainage flow",
+      "Citizen reports",
+      "Risk-level changes",
+    ],
+  },
+
+  Tambaram: {
+    risk: "LOW",
+    priority: "ROUTINE MONITORING",
+    focus: "Early detection and preventive monitoring",
+    actions: [
+      "Continue routine flood-risk monitoring.",
+      "Monitor water-level changes in vulnerable locations.",
+      "Review new citizen flood reports when received.",
+      "Check drainage conditions during rainfall.",
+      "Escalate the response if the flood-risk level increases.",
+    ],
+    monitoringParameters: [
+      "Water level",
+      "Drainage condition",
+      "Citizen reports",
+      "Risk escalation",
+    ],
+  },
+};
+
 export default function AuthorityDashboard() {
+  const [assistanceRequests, setAssistanceRequests] = useState<any[]>([]);
+
+  /* ============================================================
+     EXISTING ASSISTANCE REQUEST FUNCTIONALITY
+  ============================================================ */
+
+  useEffect(() => {
+    fetch(`${getApiBaseUrl()}/api/assistance-requests`)
+      .then((response) => response.json())
+      .then((data) => setAssistanceRequests(data))
+      .catch(() => setAssistanceRequests([]));
+  }, []);
+
+  /* ============================================================
+     EXISTING RESPONSE PLAN FUNCTIONALITY
+  ============================================================ */
+
+  const [showResponsePlan, setShowResponsePlan] = useState(false);
+
+  const [reviewedSteps, setReviewedSteps] = useState<boolean[]>(
+    Array(5).fill(false)
+  );
+
+  /* ============================================================
+     AREA BUTTON FUNCTIONALITY
+  ============================================================ */
+
+  const [showAreas, setShowAreas] = useState(false);
+  const [selectedArea, setSelectedArea] = useState<string | null>(null);
+
+  const handleAreaClick = (area: string) => {
+    setSelectedArea(area);
+    setShowAreas(false);
+  };
+
+  const clearSelectedArea = () => {
+    setSelectedArea(null);
+  };
+
+  /* ============================================================
+     SELECTED AREA KPI DATA
+  ============================================================ */
+
+  const selectedKpi = selectedArea
+    ? areaKpiData[selectedArea as keyof typeof areaKpiData]
+    : null;
+  const selectedResponsePlan = selectedArea
+    ? responsePlanData[selectedArea as keyof typeof responsePlanData]
+    : null;
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+
+      {/* ========================================================
+          EXISTING HEADER
+      ========================================================= */}
+
       <div className="rounded-2xl bg-gradient-to-r from-slate-800 to-slate-700 p-6 text-white shadow-lg">
+
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
           <div>
+
             <div className="mb-2 flex items-center gap-2">
+
               <Shield size={24} />
+
               <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
                 DEMO / SIMULATED DATA
               </span>
+
             </div>
 
             <h1 className="text-3xl font-bold">
@@ -79,185 +322,542 @@ export default function AuthorityDashboard() {
               Command-centre view for monitoring flood risk, incidents,
               vulnerable areas and recommended response actions.
             </p>
+
           </div>
 
           <div className="rounded-xl bg-white/10 px-5 py-4 text-center">
-            <p className="text-xs text-slate-300">System Status</p>
+
+            <p className="text-xs text-slate-300">
+              System Status
+            </p>
+
             <div className="mt-1 flex items-center justify-center gap-2">
+
               <span className="h-3 w-3 rounded-full bg-green-400" />
-              <span className="font-semibold">Operational</span>
+
+              <span className="font-semibold">
+                Operational
+              </span>
+
             </div>
+
           </div>
+
         </div>
+
       </div>
 
-      {/* KPI Cards */}
+      {/* ========================================================
+          AREA BUTTON SECTION
+      ========================================================= */}
+
+      <div className="relative rounded-2xl border bg-white p-5 shadow-sm">
+
+        <div className="flex flex-col items-center gap-4">
+
+          <div className="text-center">
+
+            <h2 className="text-lg font-bold text-gray-900">
+              Area
+            </h2>
+
+            <p className="text-sm text-gray-500">
+              Select an area to view area-specific information
+            </p>
+
+          </div>
+
+          {/* CENTERED AREA BUTTON */}
+
+          <button
+            type="button"
+            onClick={() => setShowAreas((current) => !current)}
+            className="flex min-w-[220px] items-center justify-between gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 text-left shadow-sm transition hover:border-blue-500 hover:bg-blue-50"
+          >
+
+            <div className="flex items-center gap-3">
+
+              <div className="rounded-lg bg-blue-100 p-2">
+
+                <MapPin
+                  size={18}
+                  className="text-blue-600"
+                />
+
+              </div>
+
+              <div>
+
+                <p className="text-xs text-gray-500">
+                  SELECTED AREA
+                </p>
+
+                <p className="text-sm font-semibold text-gray-900">
+                  {selectedArea || "Select Area"}
+                </p>
+
+              </div>
+
+            </div>
+
+            <span className="text-gray-500">
+              {showAreas ? "Hide Areas" : "Select Area"}
+            </span>
+
+          </button>
+
+        </div>
+
+        {/* ======================================================
+            AREA BUTTONS
+        ======================================================= */}
+
+        {showAreas && (
+          <div className="mt-5 border-t pt-5">
+
+            <p className="mb-3 text-center text-sm font-semibold text-gray-700">
+              Select an area
+            </p>
+
+            <div className="flex flex-wrap justify-center gap-3">
+
+              {areas.map((area) => (
+                <button
+                  key={area}
+                  type="button"
+                  onClick={() => handleAreaClick(area)}
+                  className={`rounded-lg border px-4 py-2.5 text-sm font-medium transition ${
+                    selectedArea === area
+                      ? "border-blue-600 bg-blue-600 text-white"
+                      : "border-gray-300 bg-white text-gray-700 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700"
+                  }`}
+                >
+
+                  <span className="flex items-center gap-2">
+
+                    <MapPin size={15} />
+
+                    {area}
+
+                  </span>
+
+                </button>
+              ))}
+
+            </div>
+
+          </div>
+        )}
+
+        {/* ======================================================
+            SELECTED AREA
+        ======================================================= */}
+
+        {selectedArea && (
+          <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4">
+
+            <div className="flex items-center justify-between gap-3">
+
+              <div className="flex items-center gap-3">
+
+                <div className="rounded-lg bg-blue-100 p-2">
+
+                  <MapPin
+                    size={20}
+                    className="text-blue-600"
+                  />
+
+                </div>
+
+                <div>
+
+                  <p className="text-xs font-medium uppercase text-blue-600">
+                    Selected Area
+                  </p>
+
+                  <p className="text-lg font-bold text-gray-900">
+                    {selectedArea}
+                  </p>
+
+                </div>
+
+              </div>
+
+              <button
+                type="button"
+                onClick={clearSelectedArea}
+                className="rounded-lg p-2 text-gray-500 transition hover:bg-white hover:text-red-600"
+                title="Clear selected area"
+              >
+                <X size={18} />
+              </button>
+
+            </div>
+
+          </div>
+        )}
+
+      </div>
+
+      {/* ========================================================
+          AREA-SPECIFIC KPI CARDS
+      ========================================================= */}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">Critical Zones</p>
-            <AlertTriangle className="text-red-600" size={22} />
-          </div>
-          <p className="mt-2 text-3xl font-bold">3</p>
-          <p className="mt-1 text-xs text-red-600">Immediate attention</p>
-        </div>
+
+        {/* Critical Zones */}
 
         <div className="rounded-xl border bg-white p-5 shadow-sm">
+
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">High-Risk Areas</p>
-            <MapPin className="text-orange-600" size={22} />
+
+            <p className="text-sm text-gray-500">
+              Critical Zones
+            </p>
+
+            <AlertTriangle
+              className="text-red-600"
+              size={22}
+            />
+
           </div>
-          <p className="mt-2 text-3xl font-bold">8</p>
-          <p className="mt-1 text-xs text-orange-600">Under monitoring</p>
+
+          <p className="mt-2 text-3xl font-bold">
+            {selectedKpi?.criticalZones ?? "-"}
+          </p>
+
+          <p className="mt-1 text-xs text-red-600">
+            {selectedArea
+              ? "Immediate attention"
+              : "Select an area"}
+          </p>
+
         </div>
 
-        <div className="rounded-xl border bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">People at Risk</p>
-            <Users className="text-purple-600" size={22} />
-          </div>
-          <p className="mt-2 text-3xl font-bold">24.6K</p>
-          <p className="mt-1 text-xs text-purple-600">Simulated estimate</p>
-        </div>
+        {/* High-Risk Areas */}
 
         <div className="rounded-xl border bg-white p-5 shadow-sm">
+
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">Water Level</p>
-            <Droplets className="text-blue-600" size={22} />
+
+            <p className="text-sm text-gray-500">
+              High-Risk Areas
+            </p>
+
+            <MapPin
+              className="text-orange-600"
+              size={22}
+            />
+
           </div>
-          <p className="mt-2 text-3xl font-bold">1.42 m</p>
-          <p className="mt-1 text-xs text-blue-600">Rising trend</p>
+
+          <p className="mt-2 text-3xl font-bold">
+            {selectedKpi?.highRiskAreas ?? "-"}
+          </p>
+
+          <p className="mt-1 text-xs text-orange-600">
+            {selectedArea
+              ? "Under monitoring"
+              : "Select an area"}
+          </p>
+
         </div>
+
+        {/* People at Risk */}
+
+        <div className="rounded-xl border bg-white p-5 shadow-sm">
+
+          <div className="flex items-center justify-between">
+
+            <p className="text-sm text-gray-500">
+              People at Risk
+            </p>
+
+            <Users
+              className="text-purple-600"
+              size={22}
+            />
+
+          </div>
+
+          <p className="mt-2 text-3xl font-bold">
+            {selectedKpi?.peopleAtRisk ?? "-"}
+          </p>
+
+          <p className="mt-1 text-xs text-purple-600">
+            {selectedArea
+              ? "Simulated estimate"
+              : "Select an area"}
+          </p>
+
+        </div>
+
+        {/* Water Level */}
+
+        <div className="rounded-xl border bg-white p-5 shadow-sm">
+
+          <div className="flex items-center justify-between">
+
+            <p className="text-sm text-gray-500">
+              Water Level
+            </p>
+
+            <Droplets
+              className="text-blue-600"
+              size={22}
+            />
+
+          </div>
+
+          <p className="mt-2 text-3xl font-bold">
+            {selectedKpi?.waterLevel ?? "-"}
+          </p>
+
+          <p className="mt-1 text-xs text-blue-600">
+            {selectedArea
+              ? "Rising trend"
+              : "Select an area"}
+          </p>
+
+        </div>
+
       </div>
 
-      {/* Main Grid */}
+      {/* ========================================================
+          EXISTING MAIN GRID
+      ========================================================= */}
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
         {/* Risk Trend */}
+
         <div className="rounded-2xl border bg-white p-6 shadow-sm">
+
           <div className="mb-5 flex items-center justify-between">
+
             <div>
+
               <h2 className="text-xl font-bold text-gray-900">
                 Flood Risk Trend
               </h2>
+
               <p className="text-sm text-gray-500">
-                Simulated city risk progression
+                {selectedArea ? `Simulated risk progression for ${selectedArea}` : "Select an area to view its simulated risk progression"}
               </p>
+
             </div>
 
-            <Activity className="text-blue-600" size={22} />
+            <Activity
+              className="text-blue-600"
+              size={22}
+            />
+
           </div>
 
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+            >
+
               <LineChart data={riskTrend}>
+
                 <CartesianGrid strokeDasharray="3 3" />
+
                 <XAxis dataKey="time" />
+
                 <YAxis domain={[0, 100]} />
+
                 <Tooltip />
+
                 <Line
                   type="monotone"
                   dataKey="risk"
                   strokeWidth={3}
                   dot={{ r: 4 }}
                 />
+
               </LineChart>
+
             </ResponsiveContainer>
+
           </div>
+
         </div>
 
         {/* Critical Decision */}
+
         <div className="rounded-2xl border border-red-200 bg-red-50 p-6 shadow-sm">
+
           <div className="flex items-center gap-3">
+
             <div className="rounded-xl bg-red-100 p-3 text-red-700">
+
               <Siren size={25} />
+
             </div>
 
             <div>
+
               <h2 className="text-xl font-bold text-red-900">
                 Priority Response
               </h2>
+
               <p className="text-sm text-red-700">
                 AI-assisted prototype recommendation
               </p>
+
             </div>
+
           </div>
 
           <div className="mt-6 rounded-xl bg-white p-5">
+
             <div className="flex items-center justify-between">
+
               <div>
-                <p className="text-sm text-gray-500">Priority Area</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  T. Nagar
+
+                <p className="text-sm text-gray-500">
+                  Priority Area
                 </p>
+
+                {selectedArea && selectedResponsePlan ? (
+                  <>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {selectedArea}
+                    </p>
+
+                    <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-bold text-red-700">
+                      {selectedResponsePlan.risk}
+                    </span>
+                  </>
+                ) : (
+                  <p className="text-sm font-medium text-gray-500">
+                    Select Area
+                  </p>
+                )}
+
               </div>
 
-              <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-bold text-red-700">
-                CRITICAL
-              </span>
+
             </div>
 
-            <div className="mt-5 space-y-3">
-              {[
-                "Deploy field response team",
-                "Monitor drainage blockage",
-                "Review evacuation readiness",
-                "Issue authority-level warning if verified",
-              ].map((action) => (
-                <div
-                  key={action}
-                  className="flex items-center gap-3 text-sm text-gray-700"
-                >
-                  <CheckCircle size={17} className="text-red-600" />
-                  {action}
+            {selectedArea && selectedResponsePlan ? (
+              <>
+                <div className="mt-3">
+                  <p className="text-xs font-semibold uppercase text-gray-500">
+                    {selectedResponsePlan.priority}
+                  </p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    {selectedResponsePlan.focus}
+                  </p>
                 </div>
-              ))}
-            </div>
 
-            <button className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700">
-              Review Response Plan
-              <ArrowUpRight size={17} />
-            </button>
+                <div className="mt-5 space-y-3">
+                  {selectedResponsePlan.actions.map((action) => (
+                    <div
+                      key={action}
+                      className="flex items-center gap-3 text-sm text-gray-700"
+                    >
+                      <CheckCircle
+                        size={17}
+                        className="text-red-600"
+                      />
+                      {action}
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setShowResponsePlan(true)}
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700"
+                >
+                  Review Response Plan
+                  <ArrowUpRight size={17} />
+                </button>
+              </>
+            ) : (
+              <p className="py-6 text-center text-sm text-gray-500">
+                Select an area to view its priority response.
+              </p>
+            )}
+
           </div>
+
         </div>
+
       </div>
 
-      {/* Incident Table */}
+      {/* ========================================================
+          EXISTING INCIDENT TABLE
+      ========================================================= */}
+
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
+
         <div className="mb-5 flex items-center justify-between">
+
           <div>
+
             <h2 className="text-xl font-bold text-gray-900">
               Active Flood Incidents
             </h2>
+
             <p className="text-sm text-gray-500">
               Prototype incident monitoring view
             </p>
+
           </div>
 
-          <Clock className="text-gray-500" size={22} />
+          <Clock
+            className="text-gray-500"
+            size={22}
+          />
+
         </div>
 
         <div className="overflow-x-auto">
+
           <table className="w-full min-w-[700px] text-left">
+
             <thead>
+
               <tr className="border-b text-sm text-gray-500">
-                <th className="px-4 py-3">Area</th>
-                <th className="px-4 py-3">Risk</th>
-                <th className="px-4 py-3">Issue</th>
-                <th className="px-4 py-3">Status</th>
+
+                <th className="px-4 py-3">
+                  Area
+                </th>
+
+                <th className="px-4 py-3">
+                  Risk
+                </th>
+
+                <th className="px-4 py-3">
+                  Issue
+                </th>
+
+                <th className="px-4 py-3">
+                  Status
+                </th>
+
               </tr>
+
             </thead>
 
             <tbody>
+
               {incidents.map((incident) => (
                 <tr
                   key={incident.area}
                   className="border-b last:border-0"
                 >
+
                   <td className="px-4 py-4 font-semibold text-gray-900">
                     {incident.area}
                   </td>
 
                   <td className="px-4 py-4">
+
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-semibold ${
                         incident.risk === "Critical"
@@ -269,6 +869,7 @@ export default function AuthorityDashboard() {
                     >
                       {incident.risk}
                     </span>
+
                   </td>
 
                   <td className="px-4 py-4 text-sm text-gray-600">
@@ -276,7 +877,9 @@ export default function AuthorityDashboard() {
                   </td>
 
                   <td className="px-4 py-4">
+
                     <span className="flex items-center gap-2 text-sm">
+
                       <span
                         className={`h-2.5 w-2.5 rounded-full ${
                           incident.status === "Action Required"
@@ -284,51 +887,273 @@ export default function AuthorityDashboard() {
                             : "bg-yellow-500"
                         }`}
                       />
+
                       {incident.status}
+
                     </span>
+
                   </td>
+
                 </tr>
               ))}
+
             </tbody>
+
           </table>
+
         </div>
+
       </div>
 
-      {/* Operational Modules */}
+      {/* ========================================================
+          EXISTING CITIZEN ASSISTANCE REQUESTS
+      ========================================================= */}
+
+      <div className="rounded-2xl border bg-white p-6 shadow-sm">
+
+        <div className="flex items-center gap-3">
+
+          <Users
+            className="text-red-600"
+            size={24}
+          />
+
+          <div>
+
+            <h2 className="text-xl font-bold text-gray-900">
+              Citizen Assistance Requests
+            </h2>
+
+            <p className="text-sm text-gray-500">
+              Prototype requests submitted by citizens
+            </p>
+
+          </div>
+
+        </div>
+
+        <div className="mt-5 overflow-x-auto">
+
+          {assistanceRequests.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No assistance requests submitted yet.
+            </p>
+          ) : (
+            <table className="w-full min-w-[800px] text-left">
+
+              <thead>
+
+                <tr className="border-b text-sm text-gray-500">
+
+                  <th className="px-4 py-3">
+                    Request ID
+                  </th>
+
+                  <th className="px-4 py-3">
+                    Assistance
+                  </th>
+
+                  <th className="px-4 py-3">
+                    Location
+                  </th>
+
+                  <th className="px-4 py-3">
+                    People
+                  </th>
+
+                  <th className="px-4 py-3">
+                    Priority
+                  </th>
+
+                  <th className="px-4 py-3">
+                    Time
+                  </th>
+
+                  <th className="px-4 py-3">
+                    Status
+                  </th>
+
+                </tr>
+
+              </thead>
+
+              <tbody>
+
+                {assistanceRequests.map((request) => (
+                  <tr
+                    key={request.request_id}
+                    className="border-b"
+                  >
+
+                    <td className="px-4 py-3 font-semibold">
+                      {request.request_id}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {request.assistance_type}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {request.location}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {request.people_count}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {request.priority}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {request.created_at || "-"}
+                    </td>
+
+                    <td className="px-4 py-3">
+
+                      <select
+                        value={request.status}
+                        onChange={async (event) => {
+
+                          const response = await fetch(
+                            `${getApiBaseUrl()}/api/assistance-requests/${request.request_id}/status?status=${encodeURIComponent(
+                              event.target.value
+                            )}`,
+                            {
+                              method: "PATCH",
+                            }
+                          );
+
+                          if (response.ok) {
+
+                            const updatedRequest =
+                              await response.json();
+
+                            setAssistanceRequests(
+                              (currentRequests) =>
+                                currentRequests.map((item) =>
+                                  item.request_id ===
+                                  updatedRequest.request_id
+                                    ? updatedRequest
+                                    : item
+                                )
+                            );
+
+                          }
+
+                        }}
+                        className="rounded-lg border border-gray-300 px-2 py-1 text-sm"
+                      >
+
+                        <option value="Submitted">
+                          Submitted
+                        </option>
+
+                        <option value="Under Review">
+                          Under Review
+                        </option>
+
+                        <option value="Acknowledged">
+                          Acknowledged
+                        </option>
+
+                        <option value="Resolved">
+                          Resolved
+                        </option>
+
+                      </select>
+
+                    </td>
+
+                  </tr>
+                ))}
+
+              </tbody>
+
+            </table>
+          )}
+
+        </div>
+
+        <p className="mt-4 text-xs text-gray-400">
+          DEMO / SIMULATED DATA - Prototype assistance requests only.
+        </p>
+
+      </div>
+
+      {/* ========================================================
+          EXISTING OPERATIONAL MODULES
+      ========================================================= */}
+
       <div className="rounded-2xl border bg-gray-50 p-6">
+
         <h2 className="text-xl font-bold text-gray-900">
           Authority Operations
         </h2>
 
         <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+
           <div className="rounded-xl bg-white p-4">
-            <CheckCircle className="text-green-600" size={22} />
-            <p className="mt-3 font-semibold">Monitoring</p>
+
+            <CheckCircle
+              className="text-green-600"
+              size={22}
+            />
+
+            <p className="mt-3 font-semibold">
+              Monitoring
+            </p>
+
             <p className="mt-1 text-sm text-gray-500">
               Flood-risk zones continuously reviewed.
             </p>
+
           </div>
 
           <div className="rounded-xl bg-white p-4">
-            <Activity className="text-blue-600" size={22} />
-            <p className="mt-3 font-semibold">Decision Support</p>
+
+            <Activity
+              className="text-blue-600"
+              size={22}
+            />
+
+            <p className="mt-3 font-semibold">
+              Decision Support
+            </p>
+
             <p className="mt-1 text-sm text-gray-500">
               AI-assisted prioritization of response actions.
             </p>
+
           </div>
 
           <div className="rounded-xl bg-white p-4">
-            <Shield className="text-purple-600" size={22} />
-            <p className="mt-3 font-semibold">Coordination</p>
+
+            <Shield
+              className="text-purple-600"
+              size={22}
+            />
+
+            <p className="mt-3 font-semibold">
+              Coordination
+            </p>
+
             <p className="mt-1 text-sm text-gray-500">
               Designed for future integration with authorized agencies.
             </p>
+
           </div>
+
         </div>
+
       </div>
 
-      {/* Disclaimer */}
+      {/* ========================================================
+          EXISTING DISCLAIMER
+      ========================================================= */}
+
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+
         <p className="text-sm font-semibold text-amber-900">
           Prototype Notice
         </p>
@@ -340,7 +1165,140 @@ export default function AuthorityDashboard() {
           Real deployment would require verified data sources, backend
           services, authorized agencies and operational validation.
         </p>
+
       </div>
+
+      {/* ========================================================
+          EXISTING RESPONSE PLAN MODAL
+      ========================================================= */}
+
+      {showResponsePlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+
+            <div className="flex items-start justify-between gap-4">
+
+              <div>
+
+                <div className="mb-2 inline-flex rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-xs font-semibold text-yellow-300">
+                  DEMO / SIMULATED DATA
+                </div>
+
+                <h2 className="text-2xl font-bold text-white">
+                  Priority Response Plan Review
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-400">
+                  Prototype response for {selectedArea ?? "Selected Area"} - {selectedResponsePlan?.risk ?? "N/A"} risk -
+                  {selectedResponsePlan?.priority ?? "Select an area first"}
+                </p>
+
+                {selectedArea && selectedResponsePlan && selectedKpi && (
+                  <div className="mt-4 rounded-xl border border-slate-700 bg-slate-800/50 p-4 space-y-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Response Focus</p>
+                      <p className="mt-1 text-sm text-slate-200">{selectedResponsePlan.focus}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-slate-500">People at Risk</p>
+                        <p className="mt-1 font-semibold text-white">{selectedKpi.peopleAtRisk}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Water Level</p>
+                        <p className="mt-1 font-semibold text-white">{selectedKpi.waterLevel}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Monitoring Parameters</p>
+                       <p className="mt-1 text-sm text-slate-300">{selectedResponsePlan.monitoringParameters.join(" | ")}</p>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+
+              <button
+                onClick={() => setShowResponsePlan(false)}
+                className="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+
+            </div>
+
+            <div className="mt-6 space-y-3">
+              {selectedResponsePlan?.actions.map((step, idx) => (
+
+                <label
+                  key={idx}
+                  className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-700 bg-slate-800/50 p-3 hover:bg-slate-800"
+                >
+
+                  <input
+                    type="checkbox"
+                    checked={reviewedSteps[idx]}
+                    onChange={(e) => {
+                      const ns = [...reviewedSteps];
+
+                      ns[idx] = e.target.checked;
+
+                      setReviewedSteps(ns);
+                    }}
+                    className="mt-1 h-4 w-4"
+                  />
+
+                  <span
+                    className={`text-sm ${
+                      reviewedSteps[idx]
+                        ? "text-slate-500 line-through"
+                        : "text-slate-200"
+                    }`}
+                  >
+                    {step}
+                  </span>
+
+                </label>
+              ))}
+
+            </div>
+
+            <p className="mt-4 text-sm text-slate-400">
+              {reviewedSteps.filter(Boolean).length} / 5 reviewed -
+              Progress tracking
+            </p>
+
+            <div className="mt-4 flex gap-3">
+
+              <button
+                onClick={() => setShowResponsePlan(false)}
+                className="flex-1 rounded-lg border border-slate-700 py-2.5 font-semibold text-slate-300 hover:bg-slate-800"
+              >
+                Close
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowResponsePlan(false);
+                  alert("Response Plan Reviewed - Demo Success!");
+                }}
+                disabled={
+                  reviewedSteps.filter(Boolean).length < 5
+                }
+                className="flex-1 rounded-lg bg-green-600 py-2.5 font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                Confirm Review (
+                {reviewedSteps.filter(Boolean).length}/5)
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
     </div>
   );
 }
