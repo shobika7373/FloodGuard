@@ -1,4 +1,5 @@
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import Body,FastAPI, File, HTTPException, UploadFile
+from .push_notifications import add_subscription
 from fastapi.middleware.cors import CORSMiddleware
 
 from .models.flood import FloodRiskInput, FloodRiskResponse
@@ -474,3 +475,30 @@ async def photo_water_depth(file: UploadFile = File(...)):
         return analyze_photo(image_bytes, file.filename)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+@app.get("/api/notifications/status")
+def notification_status():
+    return {
+        "success": True,
+        "service": "FloodGuard Push Notifications",
+        "status": "ready",
+        "subscribers": 0,
+    }
+
+
+@app.post("/api/notifications/subscribe")
+def subscribe_to_notifications(
+    subscription: dict = Body(...),
+):
+    try:
+        add_subscription(subscription)
+
+        return {
+            "success": True,
+            "message": "Device subscribed to FloodGuard notifications",
+        }
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        )
