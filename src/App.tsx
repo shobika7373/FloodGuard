@@ -833,6 +833,7 @@ export default function App() {
     "AI Insights": "AI நுண்ணறிவுகள்",
     "Authority Dashboard": "அதிகாரி டாஷ்போர்டு",
     "Admin Panel": "நிர்வாகப் பலகம்",
+    "Request Help": "\u0b89\u0ba4\u0bb5\u0bbf \u0b95\u0bcb\u0bb0\u0bbf\u0b95\u0bcd\u0b95\u0bc8",
     "About FloodGuard": "FloodGuard பற்றி",
   };
 
