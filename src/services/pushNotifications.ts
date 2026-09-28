@@ -1,6 +1,5 @@
 const VAPID_PUBLIC_KEY =
-  "BJkOSW7CNsGhCKnUbIHs7gIAy3AHSm8ARvPwFsecfVpD0gcP-xJtxNekW5XOyg9__UoXxIYzBXsozKkzeGFrTM8";
-
+  "BCIron-An8wyj2OuEjGx0-z2cFiwRWwxinJh3fuS8ostdGCdsAx0wxRElbnuIYZSPMi3S_NW8F41zYjyQHGC0EQ";
 const API_BASE_URL = "http://127.0.0.1:8000";
 
 function urlBase64ToUint8Array(

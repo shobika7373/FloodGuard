@@ -1,5 +1,8 @@
 from fastapi import Body,FastAPI, File, HTTPException, UploadFile
-from .push_notifications import add_subscription
+from .push_notifications import (
+    add_subscription,
+    send_to_all_subscribers,
+)
 from fastapi.middleware.cors import CORSMiddleware
 
 from .models.flood import FloodRiskInput, FloodRiskResponse
@@ -502,3 +505,21 @@ def subscribe_to_notifications(
             status_code=400,
             detail=str(error),
         )
+@app.post("/api/notifications/test")
+def test_notification():
+    sent_count = send_to_all_subscribers(
+        title="FloodGuard Prototype Alert",
+        message=(
+            "PROTOTYPE / SIMULATED ALERT\n"
+            "Affected area: T. Nagar\n"
+            "Risk: HIGH\n"
+            "Risk score: 82/100\n"
+            "Recommended action: Inspect drainage and issue warning"
+        ),
+    )
+
+    return {
+        "success": True,
+        "message": "Prototype notification sent",
+        "sent_count": sent_count,
+    }
