@@ -672,7 +672,6 @@ export default function App() {
     useState<"English" | "Tamil">("English");
 
   const [largeText, setLargeText] = useState(false);
-  const [highContrast, setHighContrast] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [accessibilityOpen, setAccessibilityOpen] =
     useState(false);
@@ -756,8 +755,6 @@ export default function App() {
           language: "மொழி",
           largeText: "பெரிய எழுத்து",
           largeTextDesc: "உரையை பெரியதாக மாற்றவும்",
-          contrast: "உயர் மாறுபாடு",
-          contrastDesc: "திரையின் நிற வேறுபாட்டை அதிகரிக்கவும்",
           voice: "குரல் எச்சரிக்கைகள்",
           voiceDesc: "வெள்ள எச்சரிக்கைகளை குரலில் கேட்கவும்",
           close: "மூடு",
@@ -769,8 +766,6 @@ export default function App() {
           language: "Language",
           largeText: "Large Text",
           largeTextDesc: "Increase text size for better readability",
-          contrast: "High Contrast",
-          contrastDesc: "Increase screen color contrast",
           voice: "Voice Alerts",
           voiceDesc: "Hear flood alerts using voice playback",
           close: "Close",
@@ -841,7 +836,7 @@ export default function App() {
     <div
       className={`min-h-screen bg-slate-50 ${
         largeText ? "fg-large-text" : ""
-      } ${highContrast ? "fg-high-contrast" : ""}`}
+      }`}
     >
       <style>
         {`
@@ -849,41 +844,6 @@ export default function App() {
             zoom: 1.1;
           }
 
-          .fg-high-contrast {
-            background: #000 !important;
-            color: #fff !important;
-          }
-
-          .fg-high-contrast .bg-white {
-            background: #000 !important;
-            color: #fff !important;
-          }
-
-          .fg-high-contrast .bg-slate-50,
-          .fg-high-contrast .bg-slate-100 {
-            background: #111 !important;
-            color: #fff !important;
-          }
-
-          .fg-high-contrast .text-slate-900,
-          .fg-high-contrast .text-slate-800,
-          .fg-high-contrast .text-slate-700,
-          .fg-high-contrast .text-slate-600,
-          .fg-high-contrast .text-slate-500,
-          .fg-high-contrast .text-slate-400 {
-            color: #fff !important;
-          }
-
-          .fg-high-contrast .border-slate-200,
-          .fg-high-contrast .border-slate-100 {
-            border-color: #fff !important;
-          }
-
-          .fg-high-contrast button:focus-visible,
-          .fg-high-contrast [role="button"]:focus-visible {
-            outline: 3px solid #ffff00 !important;
-            outline-offset: 2px !important;
-          }
         `}
       </style>
 
@@ -1014,26 +974,22 @@ export default function App() {
 
       {/* Main Content */}
       <div
-  className="sr-only"
-  aria-live="polite"
-  aria-atomic="true"
->
-  {language === "Tamil"
-    ? `அணுகல்தன்மை நிலை. மொழி: தமிழ். பெரிய எழுத்து: ${
-        largeText ? "இயக்கத்தில்" : "முடக்கப்பட்டுள்ளது"
-      }. உயர் மாறுபாடு: ${
-        highContrast ? "இயக்கத்தில்" : "முடக்கப்பட்டுள்ளது"
-      }. குரல் எச்சரிக்கைகள்: ${
-        voiceEnabled ? "இயக்கத்தில்" : "முடக்கப்பட்டுள்ளது"
-      }.`
-    : `Accessibility status. Language: English. Large text: ${
-        largeText ? "on" : "off"
-      }. High contrast: ${
-        highContrast ? "on" : "off"
-      }. Voice alerts: ${
-        voiceEnabled ? "on" : "off"
-      }.`}
-</div>
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {language === "Tamil"
+          ? `??????????? ????. ????: ?????. ????? ???????: ${
+              largeText ? "???????????" : "??????????????????"
+            }. ????? ?????????????: ${
+              voiceEnabled ? "???????????" : "??????????????????"
+            }.`
+          : `Accessibility status. Language: English. Large text: ${
+              largeText ? "on" : "off"
+            }. Voice alerts: ${
+              voiceEnabled ? "on" : "off"
+            }.`}
+      </div>
       <main className="lg:ml-72">
 
         {/* Top Bar */}
@@ -1212,49 +1168,6 @@ export default function App() {
                         <span
                           className={`absolute top-1 h-4 w-4 rounded-full bg-white transition ${
                             largeText
-                              ? "left-6"
-                              : "left-1"
-                          }`}
-                        />
-                      </span>
-
-                    </button>
-
-                    {/* High Contrast */}
-                    <button
-                      onClick={() =>
-                        setHighContrast(!highContrast)
-                      }
-                      className="flex w-full items-center justify-between rounded-lg border border-slate-200 p-3 text-left hover:bg-slate-50"
-                      aria-pressed={highContrast}
-                      aria-label={
-                        language === "Tamil"
-                          ? "உயர் மாறுபாடு"
-                          : "High Contrast"
-                      }
-                    >
-
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800">
-                          {accessibilityText.contrast}
-                        </p>
-
-                        <p className="mt-1 text-xs text-slate-400">
-                          {accessibilityText.contrastDesc}
-                        </p>
-                      </div>
-
-                      <span
-                        className={`relative h-6 w-11 rounded-full transition ${
-                          highContrast
-                            ? "bg-slate-900"
-                            : "bg-slate-300"
-                        }`}
-                        aria-hidden="true"
-                      >
-                        <span
-                          className={`absolute top-1 h-4 w-4 rounded-full bg-white transition ${
-                            highContrast
                               ? "left-6"
                               : "left-1"
                           }`}
