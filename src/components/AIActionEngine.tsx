@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { getActionRecommendations } from "../services/api";
+import { sendPrototypeAlert } from "../services/pushNotifications";
 
 type Priority = "Immediate" | "High" | "Monitor";
 
@@ -822,7 +823,24 @@ export default function AIActionEngine() {
                 )}
 
                 <button
-                  onClick={() => setDraftSaved(true)}
+                  onClick={async () => {
+                    try {
+                      await sendPrototypeAlert({
+                        area: selectedData.area,
+                        risk: selectedData.priority,
+                        riskScore: selectedData.risk,
+                        action: "Issue simulated flood warning",
+                        reason: selectedData.reason,
+                      });
+                    } catch (error) {
+                      console.error(
+                        "Prototype warning notification failed:",
+                        error
+                      );
+                    }
+
+                    setDraftSaved(true);
+                  }}
                   className="mt-5 w-full rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700"
                 >
                   Save Warning Draft
