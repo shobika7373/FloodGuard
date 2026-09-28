@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect , useState } from "react";
 import {
   Bell,
   Check,
@@ -73,7 +73,39 @@ function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] =
     useState<NotificationItem[]>(initialNotifications);
+  useEffect(() => {
+  const handlePrototypeAlert = (event: Event) => {
+    const customEvent = event as CustomEvent<{
+      area: string;
+      risk: NotificationItem["risk"];
+      action: string;
+    }>;
 
+    setNotifications((current) => [
+      {
+        id: Date.now(),
+        area: customEvent.detail.area,
+        risk: customEvent.detail.risk,
+        action: customEvent.detail.action,
+        time: "Just now",
+        read: false,
+      },
+      ...current,
+    ]);
+  };
+
+  window.addEventListener(
+    "floodguard-prototype-alert",
+    handlePrototypeAlert
+  );
+
+  return () => {
+    window.removeEventListener(
+      "floodguard-prototype-alert",
+      handlePrototypeAlert
+    );
+  };
+}, []);
   const [isSubscribing, setIsSubscribing] =
     useState(false);
 

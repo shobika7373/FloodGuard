@@ -823,28 +823,45 @@ export default function AIActionEngine() {
                 )}
 
                 <button
-                  onClick={async () => {
-                    try {
-                      await sendPrototypeAlert({
-                        area: selectedData.area,
-                        risk: selectedData.priority,
-                        riskScore: selectedData.risk,
-                        action: "Issue simulated flood warning",
-                        reason: selectedData.reason,
-                      });
-                    } catch (error) {
-                      console.error(
-                        "Prototype warning notification failed:",
-                        error
-                      );
-                    }
+  onClick={async () => {
+    try {
+      await sendPrototypeAlert({
+        area: selectedData.area,
+        risk: selectedData.priority,
+        riskScore: selectedData.risk,
+        action: "Issue simulated flood warning",
+        reason: selectedData.reason,
+      });
 
-                    setDraftSaved(true);
-                  }}
-                  className="mt-5 w-full rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700"
-                >
-                  Save Warning Draft
-                </button>
+      const notificationRisk =
+        selectedData.priority === "Immediate"
+          ? "CRITICAL"
+          : selectedData.priority === "High"
+          ? "HIGH"
+          : "MODERATE";
+
+      window.dispatchEvent(
+        new CustomEvent("floodguard-prototype-alert", {
+          detail: {
+            area: selectedData.area,
+            risk: notificationRisk,
+            action: "Issue simulated flood warning",
+          },
+        })
+      );
+    } catch (error) {
+      console.error(
+        "Prototype warning notification failed:",
+        error
+      );
+    }
+
+    setDraftSaved(true);
+  }}
+  className="mt-5 w-full rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+>
+  Save Warning Draft
+</button>
 
                 <p className="mt-3 text-xs text-amber-700">
                   This does not send SMS, email, or any real emergency
