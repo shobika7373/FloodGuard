@@ -840,10 +840,62 @@ export default function App() {
     >
       <style>
         {`
-          .fg-large-text main {
-            zoom: 1.1;
+          /* Large Text accessibility mode */
+          .fg-large-text main p,
+          .fg-large-text main li,
+          .fg-large-text main label,
+          .fg-large-text main button,
+          .fg-large-text main input,
+          .fg-large-text main textarea,
+          .fg-large-text main select,
+          .fg-large-text main td,
+          .fg-large-text main th {
+            font-size: 1.125rem !important;
+            line-height: 1.6 !important;
           }
 
+          .fg-large-text main h1 {
+            font-size: 1.875rem !important;
+            line-height: 1.3 !important;
+          }
+
+          .fg-large-text main h2 {
+            font-size: 1.5rem !important;
+            line-height: 1.35 !important;
+          }
+
+          .fg-large-text main h3 {
+            font-size: 1.25rem !important;
+            line-height: 1.4 !important;
+          }
+
+          .fg-large-text main .text-xs {
+            font-size: 1rem !important;
+          }
+
+          .fg-large-text main .text-sm {
+            font-size: 1.125rem !important;
+          }
+
+          .fg-large-text main .text-base {
+            font-size: 1.125rem !important;
+          }
+
+          .fg-large-text main .text-lg {
+            font-size: 1.25rem !important;
+          }
+
+          .fg-large-text main .text-xl {
+            font-size: 1.375rem !important;
+          }
+
+          .fg-large-text main .text-2xl {
+            font-size: 1.625rem !important;
+          }
+
+          .fg-large-text main .text-3xl {
+            font-size: 2rem !important;
+          }
         `}
       </style>
 
