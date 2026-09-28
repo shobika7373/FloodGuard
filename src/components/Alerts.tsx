@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   Bell,
@@ -80,6 +80,29 @@ function severityStyle(severity: string) {
 
 export default function Alerts() {
   const [showResponse, setShowResponse] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState<
+    (typeof alerts)[number] | null
+  >(null);
+
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!selectedAlert) return;
+
+    dialogRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelectedAlert(null);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedAlert]);
 
   const activeAlerts = alerts.filter(
     (alert) => alert.status === "Active"
@@ -388,16 +411,130 @@ export default function Alerts() {
                   </div>
 
                   {/* Action */}
-                  <button className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
-                    <CheckCircle className="h-4 w-4" />
-                    View Details
-                  </button>
+                  <button
+  type="button"
+  onClick={() => setSelectedAlert(alert)}
+  aria-label={`View details for ${alert.title}`}
+  className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+>
+  <CheckCircle className="h-4 w-4" />
+  View Details
+</button>
                 </div>
               </div>
             );
           })}
         </div>
       </div>
+
+    {/* Alert Details Modal */}
+      {selectedAlert && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setSelectedAlert(null);
+            }
+          }}
+        >
+          <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="alert-details-title"
+            tabIndex={-1}
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl outline-none"
+          >
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-5">
+              <div>
+                <h2
+                  id="alert-details-title"
+                  className="text-xl font-bold text-slate-900"
+                >
+                  {selectedAlert.title}
+                </h2>
+
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      severityStyle(selectedAlert.severity).badge
+                    }`}
+                  >
+                    {selectedAlert.severity}
+                  </span>
+
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                    {selectedAlert.status}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedAlert(null)}
+                aria-label="Close alert details"
+                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Alert Information */}
+            <div className="space-y-4 p-5">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-lg bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-wide text-slate-400">
+                    Location
+                  </p>
+                  <p className="mt-1 font-semibold text-slate-900">
+                    {selectedAlert.location}
+                  </p>
+                </div>
+
+                <div className="rounded-lg bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-wide text-slate-400">
+                    Time
+                  </p>
+                  <p className="mt-1 font-semibold text-slate-900">
+                    {selectedAlert.time}
+                  </p>
+                </div>
+
+                <div className="rounded-lg bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-wide text-slate-400">
+                    Alert ID
+                  </p>
+                  <p className="mt-1 font-semibold text-slate-900">
+                    {selectedAlert.id}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Reason
+                </p>
+
+                <p className="mt-2 text-sm text-slate-700">
+                  {selectedAlert.reason}
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Recommended Action
+                </p>
+
+                <p className="mt-2 text-sm text-slate-700">
+                  {selectedAlert.action}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Alert workflow */}
       <div className="rounded-xl border border-slate-200 bg-white p-5">
