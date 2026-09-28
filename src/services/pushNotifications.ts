@@ -1,6 +1,8 @@
+import { getApiBaseUrl } from "./api";
+
 const VAPID_PUBLIC_KEY =
   "BCIron-An8wyj2OuEjGx0-z2cFiwRWwxinJh3fuS8ostdGCdsAx0wxRElbnuIYZSPMi3S_NW8F41zYjyQHGC0EQ";
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = getApiBaseUrl();
 
 function urlBase64ToUint8Array(
   base64String: string
@@ -105,4 +107,40 @@ export async function subscribeToPushNotifications(): Promise<PushSubscription> 
   }
 
   return subscription;
+}
+
+export async function sendPrototypeAlert(payload: {
+  area: string;
+  risk: string;
+  riskScore?: number;
+  action: string;
+  reason?: string;
+}) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/notifications/alert`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.ok) {
+    let errorMessage = "Failed to send prototype alert.";
+
+    try {
+      const errorData = await response.json();
+      if (errorData?.detail) {
+        errorMessage = errorData.detail;
+      }
+    } catch {
+      // Use default error message
+    }
+
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
 }

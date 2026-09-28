@@ -2,6 +2,7 @@ from fastapi import Body,FastAPI, File, HTTPException, UploadFile
 from .push_notifications import (
     add_subscription,
     send_to_all_subscribers,
+    subscriptions,
 )
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -484,7 +485,7 @@ def notification_status():
         "success": True,
         "service": "FloodGuard Push Notifications",
         "status": "ready",
-        "subscribers": 0,
+        "subscribers": len(subscriptions),
     }
 
 
@@ -505,6 +506,40 @@ def subscribe_to_notifications(
             status_code=400,
             detail=str(error),
         )
+@app.post("/api/notifications/alert")
+def prototype_alert(payload: dict = Body(...)):
+    area = payload.get("area", "Selected area")
+    risk = payload.get("risk", "DEMO")
+    risk_score = payload.get("riskScore")
+    action = payload.get("action", "Review the selected prototype action")
+    reason = payload.get("reason", "Simulated flood-risk conditions")
+
+    message_lines = [
+        "PROTOTYPE / SIMULATED ALERT",
+        f"Affected area: {area}",
+        f"Risk: {risk}",
+    ]
+
+    if risk_score is not None:
+        message_lines.append(f"Risk score: {risk_score}/100")
+
+    message_lines.extend([
+        f"Why: {reason}",
+        f"Recommended action: {action}",
+    ])
+
+    sent_count = send_to_all_subscribers(
+        title="FloodGuard Prototype Alert",
+        message="\\n".join(message_lines),
+    )
+
+    return {
+        "success": True,
+        "message": "Prototype notification processed",
+        "sent_count": sent_count,
+    }
+
+
 @app.post("/api/notifications/test")
 def test_notification():
     sent_count = send_to_all_subscribers(

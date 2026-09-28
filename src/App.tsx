@@ -827,18 +827,8 @@ export default function App() {
               Weather Service
             </div>
 
-           <div className="flex items-center gap-3">
-  <div className="hidden items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-500 md:flex">
-    <span className="h-2 w-2 rounded-full bg-green-500" />
-    Weather Service
-  </div>
+            <NotificationBell />
 
-  <NotificationBell />
-
-  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
-    FG
-  </div>
-</div>
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
               FG
             </div>
