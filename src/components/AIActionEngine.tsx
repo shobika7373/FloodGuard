@@ -30,7 +30,13 @@ type AreaData = {
   rainfall?: number;
 };
 
-type ModalType = "drainage" | "warning" | "route" | "simulation" | null;
+type ModalType =
+  | "drainage"
+  | "warning"
+  | "route"
+  | "simulation"
+  | "monitor"
+  | null;
 
 const areas = [
   "T. Nagar",
@@ -176,6 +182,9 @@ export default function AIActionEngine() {
   const [backendError, setBackendError] = useState(false);
 
   const [selectedArea, setSelectedArea] = useState("T. Nagar");
+  const [selectedActionArea, setSelectedActionArea] = useState<string | null>(
+    null
+  );
   const [compareMode, setCompareMode] = useState(false);
   const [selectedAreas, setSelectedAreas] = useState<string[]>([
     "T. Nagar",
@@ -184,6 +193,7 @@ export default function AIActionEngine() {
   const [modal, setModal] = useState<ModalType>(null);
   const [warningText, setWarningText] = useState("");
   const [inspectionNotes, setInspectionNotes] = useState("");
+  const [monitorNotes, setMonitorNotes] = useState("");
   const [draftSaved, setDraftSaved] = useState(false);
 
   const [simulation, setSimulation] = useState<{
@@ -276,6 +286,12 @@ export default function AIActionEngine() {
       );
     }
 
+    if (type === "monitor") {
+      setMonitorNotes(
+        `Continue reviewing simulated rainfall, water-level, and drainage conditions in ${selectedData.area}.`
+      );
+    }
+
     if (type === "simulation") {
       const currentRisk = selectedData.risk;
       const simulatedRisk = Math.max(0, currentRisk - 15);
@@ -291,6 +307,51 @@ export default function AIActionEngine() {
         currentDepth,
         simulatedDepth,
       });
+    }
+  }
+
+  function getReviewModalType(action: string): ModalType {
+    const normalizedAction = action.toLowerCase();
+
+    if (normalizedAction.includes("warning")) return "warning";
+    if (normalizedAction.includes("drainage")) return "drainage";
+    if (normalizedAction.includes("monitor")) return "monitor";
+
+    return "simulation";
+  }
+
+  function selectRecommendation(area: string) {
+    setSelectedArea(area);
+    setCompareMode(false);
+    setSelectedActionArea(area);
+  }
+
+  function reviewRecommendation(item: AreaData) {
+    setSelectedArea(item.area);
+    setCompareMode(false);
+    setSelectedActionArea(item.area);
+
+    const reviewType = getReviewModalType(item.action);
+
+    setModal(reviewType);
+    setDraftSaved(false);
+
+    if (reviewType === "warning") {
+      setWarningText(
+        `Prototype warning for ${item.area}: ${item.reason}`
+      );
+    }
+
+    if (reviewType === "drainage") {
+      setInspectionNotes(
+        `Review simulated drainage conditions in ${item.area}.`
+      );
+    }
+
+    if (reviewType === "monitor") {
+      setMonitorNotes(
+        `Continue reviewing simulated rainfall, water-level, and drainage conditions in ${item.area}.`
+      );
     }
   }
 
@@ -684,15 +745,38 @@ export default function AIActionEngine() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => {
-                      setSelectedArea(item.area);
-                      setCompareMode(false);
-                    }}
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-white"
-                  >
-                    Select
-                  </button>
+                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-32">
+                    <button
+                      type="button"
+                      onClick={() => selectRecommendation(item.area)}
+                      aria-pressed={selectedActionArea === item.area}
+                      aria-label={
+                        selectedActionArea === item.area
+                          ? `${item.area} recommendation selected`
+                          : `Select ${item.area} recommendation`
+                      }
+                      className={`rounded-lg border px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                        selectedActionArea === item.area
+                          ? "border-blue-300 bg-blue-100 text-blue-800"
+                          : "border-slate-300 text-slate-700 hover:bg-white"
+                      }`}
+                    >
+                      {selectedActionArea === item.area
+                        ? "Selected"
+                        : "Select"}
+                    </button>
+
+                    {selectedActionArea === item.area && (
+                      <button
+                        type="button"
+                        onClick={() => reviewRecommendation(item)}
+                        aria-label={`Review action for ${item.area}: ${item.action}`}
+                        className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                      >
+                        Review Action
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -823,49 +907,118 @@ export default function AIActionEngine() {
                 )}
 
                 <button
-  onClick={async () => {
-    try {
-      await sendPrototypeAlert({
-        area: selectedData.area,
-        risk: selectedData.priority,
-        riskScore: selectedData.risk,
-        action: "Issue simulated flood warning",
-        reason: selectedData.reason,
-      });
+                  onClick={async () => {
+                    try {
+                      await sendPrototypeAlert({
+                        area: selectedData.area,
+                        risk: selectedData.priority,
+                        riskScore: selectedData.risk,
+                        action: "Issue simulated flood warning",
+                        reason: selectedData.reason,
+                      });
 
-      const notificationRisk =
-        selectedData.priority === "Immediate"
-          ? "CRITICAL"
-          : selectedData.priority === "High"
-          ? "HIGH"
-          : "MODERATE";
+                      const notificationRisk =
+                        selectedData.priority === "Immediate"
+                          ? "CRITICAL"
+                          : selectedData.priority === "High"
+                          ? "HIGH"
+                          : "MODERATE";
 
-      window.dispatchEvent(
-        new CustomEvent("floodguard-prototype-alert", {
-          detail: {
-            area: selectedData.area,
-            risk: notificationRisk,
-            action: "Issue simulated flood warning",
-          },
-        })
-      );
-    } catch (error) {
-      console.error(
-        "Prototype warning notification failed:",
-        error
-      );
-    }
+                      window.dispatchEvent(
+                        new CustomEvent("floodguard-prototype-alert", {
+                          detail: {
+                            area: selectedData.area,
+                            risk: notificationRisk,
+                            action: "Issue simulated flood warning",
+                          },
+                        })
+                      );
+                    } catch (error) {
+                      console.error(
+                        "Prototype warning notification failed:",
+                        error
+                      );
+                    }
 
-    setDraftSaved(true);
-  }}
-  className="mt-5 w-full rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700"
->
-  Save Warning Draft
-</button>
+                    setDraftSaved(true);
+                  }}
+                  className="mt-5 w-full rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  Save Warning Draft
+                </button>
 
                 <p className="mt-3 text-xs text-amber-700">
                   This does not send SMS, email, or any real emergency
                   notification.
+                </p>
+              </>
+            )}
+
+            {/* Monitoring */}
+            {modal === "monitor" && (
+              <>
+                <ModalHeader
+                  title="Monitoring Action Review"
+                  subtitle={`Review simulated monitoring for ${selectedData.area}`}
+                  onClose={closeModal}
+                />
+
+                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <InfoBox
+                    label="Area"
+                    value={selectedData.area}
+                  />
+
+                  <InfoBox
+                    label="Risk Score"
+                    value={`${selectedData.risk}/100`}
+                  />
+
+                  <InfoBox
+                    label="Priority"
+                    value={selectedData.priority}
+                  />
+                </div>
+
+                <div className="mt-5 rounded-lg bg-slate-50 p-4">
+                  <p className="text-sm font-bold text-slate-900">
+                    Monitoring Focus
+                  </p>
+
+                  <p className="mt-2 text-sm text-slate-600">
+                    {selectedData.reason}
+                  </p>
+                </div>
+
+                <label className="mt-5 block text-sm font-semibold text-slate-700">
+                  Monitoring Notes
+                </label>
+
+                <textarea
+                  value={monitorNotes}
+                  onChange={(e) => setMonitorNotes(e.target.value)}
+                  rows={4}
+                  aria-label={`Monitoring notes for ${selectedData.area}`}
+                  className="mt-2 w-full rounded-lg border border-slate-300 p-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+
+                {draftSaved && (
+                  <div className="mt-4 rounded-lg bg-green-50 p-3 text-sm font-semibold text-green-700">
+                    Prototype monitoring review saved locally for review.
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setDraftSaved(true)}
+                  className="mt-5 w-full rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  Save Monitoring Review
+                </button>
+
+                <p className="mt-3 text-xs text-amber-700">
+                  This is a simulated review step and does not execute an
+                  emergency action or send a real notification.
                 </p>
               </>
             )}
@@ -882,24 +1035,28 @@ export default function AIActionEngine() {
                 <div className="mt-5 rounded-xl bg-blue-50 p-5">
                   <div className="flex items-center gap-3">
                     <MapPin className="text-blue-600" />
+
                     <div>
                       <p className="text-xs uppercase text-slate-500">
                         Starting Area
                       </p>
+
                       <p className="font-bold text-slate-900">
                         {selectedData.area}
                       </p>
                     </div>
                   </div>
 
-                  <div className="my-4 h-8 border-l-2 border-dashed border-blue-300 ml-3" />
+                  <div className="my-4 ml-3 h-8 border-l-2 border-dashed border-blue-300" />
 
                   <div className="flex items-center gap-3">
                     <Route className="text-green-600" />
+
                     <div>
                       <p className="text-xs uppercase text-slate-500">
                         Prototype Destination
                       </p>
+
                       <p className="font-bold text-slate-900">
                         Simulated Safe Zone
                       </p>
@@ -952,6 +1109,7 @@ export default function AIActionEngine() {
 
                 <div className="mt-5 flex items-center gap-3 rounded-lg bg-green-50 p-4">
                   <Play className="text-green-600" />
+
                   <p className="text-sm text-green-800">
                     Scenario calculation shows a simulated reduction in risk
                     after response conditions are improved.
